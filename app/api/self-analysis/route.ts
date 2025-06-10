@@ -21,7 +21,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("self_analysis")
       .select("*")
-      .eq("user_id", user.id)
+      // .eq("user_id", user.id.toString())
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       .insert([
         {
           content,
-          user_id: user.id,
+          user_id: user.id.toString(),
           created_at: new Date().toISOString(),
         },
       ])
