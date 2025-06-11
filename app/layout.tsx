@@ -5,6 +5,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { ModalProvider } from "@/components/providers/ModalProvider";
 import { Toaster } from "@/components/ui/toaster";
+import { ToastProvider } from "@/components/providers/ToastContext";
 
 import { cn } from "@/lib/utils";
 
@@ -23,10 +24,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body className={cn(inter.className, "bg-gray-100/30")}>
-        <Toaster/>
-        <ModalProvider/>
-        {children}
+      <body className={cn(inter.className, "bg-gray-100/30")}> 
+        <ToastProvider>
+          <Toaster/>
+          <ModalProvider/>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

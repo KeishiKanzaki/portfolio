@@ -41,7 +41,7 @@ export default function HomePage() {
           </nav>
           <div className="flex items-center space-x-3">
             <Button variant="ghost" className="text-gray-600" asChild>
-                ログイン
+                ロ
             </Button>
             <StartFreeButton />
           </div>
@@ -65,7 +65,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <StartFreeButton />
-            <Button size="lg" variant="outline" className="text-lg text-white bg-gradient-to-r from-green-400 to-green-500 hover:from-green-600 hover:to-green-500 hover:text-white px-8 py-3" asChild>
+            <Button size="lg" variant="outline" className="text-lg text-white bg-gradient-to-r from-green-400 to-green-500 hover:from-green-600 hover:to-green-500 hover:text-white px-8 py-3">
               <Link href="/sign-in">
                 ログイン
               </Link>

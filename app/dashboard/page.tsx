@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -25,20 +28,80 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { UserButton } from "@clerk/nextjs"
+import { supabase } from "@/lib/supabase";
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+}
+
+interface Activity {
+  id: number;
+  type: string;
+  title: string;
+  time: string;
+  icon: any;
+  color: string;
+}
+
+interface Task {
+  id: number;
+  task: string;
+  completed: boolean;
+}
+
+interface Deadline {
+  id: number;
+  company: string;
+  deadline: string;
+  position: string;
+  urgent: boolean;
+}
 
 export default function Component() {
-  // Mock data for demonstration
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!session?.user) {
+          return;
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError) throw profileError;
+        setUserProfile(profile);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
   const userStats = {
-    name: "田中 太郎",
+    name: userProfile?.name || "ゲスト",
     avatar: "/placeholder.svg?height=40&width=40",
     completedAnalyses: 3,
     portfolioProjects: 5,
     submittedES: 12,
     communityPosts: 8,
     weeklyGoalProgress: 75,
-  }
+  };
 
-  const recentActivities = [
+  const recentActivities: Activity[] = [
     {
       id: 1,
       type: "analysis",
@@ -55,61 +118,42 @@ export default function Component() {
       icon: Briefcase,
       color: "text-blue-600",
     },
+  ];
+
+  const weeklyTasks: Task[] = [
+    { id: 1, task: "自己分析を完了する", completed: true },
+    { id: 2, task: "ポートフォリオを更新", completed: false },
+  ];
+
+  const upcomingDeadlines: Deadline[] = [
     {
-      id: 3,
-      type: "community",
-      title: "山田さんの投稿にいいねしました",
-      time: "1日前",
-      icon: Heart,
-      color: "text-red-500",
+      id: 1,
+      company: "A社",
+      position: "ソフトウェアエンジニア",
+      deadline: "2024/6/15",
+      urgent: true
     },
     {
-      id: 4,
-      type: "es",
-      title: "株式会社ABCのESを提出しました",
-      time: "2日前",
-      icon: FileText,
-      color: "text-green-600",
+      id: 2,
+      company: "B社",
+      position: "フロントエンドエンジニア",
+      deadline: "2024/6/20",
+      urgent: false
     },
-  ]
+  ];
 
-  const weeklyTasks = [
-    { id: 1, task: "価値観診断を受ける", completed: true },
-    { id: 2, task: "ポートフォリオに新プロジェクト追加", completed: true },
-    { id: 3, task: "3社のES作成", completed: false },
-    { id: 4, task: "コミュニティで質問投稿", completed: false },
-  ]
-
-  const upcomingDeadlines = [
-    { company: "株式会社XYZ", position: "フロントエンドエンジニア", deadline: "3日後", urgent: true },
-    { company: "テック株式会社", position: "バックエンドエンジニア", deadline: "1週間後", urgent: false },
-    { company: "スタートアップABC", position: "フルスタックエンジニア", deadline: "2週間後", urgent: false },
-  ]
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-50">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-orange-500 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">CareerHub</span>
-            </div>
-            <Separator />
-            <nav className="flex items-center space-x-6">
-              <Link href="#" className="flex items-center space-x-2 text-blue-600 font-medium">
-                <Home className="w-4 h-4" />
-                <span>ダッシュボード</span>
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="relative">
+    <>
+      <header className="flex h-14 lg:h-[60px] items-center gap-4 border-b bg-gray-100/40 px-6">
+        <div className="flex flex-1 items-center justify-end md:justify-between">
+          <div className="flex items-center gap-4 md:gap-2 lg:gap-4">
+            <Button variant="ghost" size="sm">
               <Bell className="w-4 h-4" />
-              <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
+              <Badge className="ml-1" variant="secondary">
                 3
               </Badge>
             </Button>
@@ -117,8 +161,8 @@ export default function Component() {
               <Search className="w-4 h-4" />
             </Button>
             <Avatar className="w-8 h-8">
-              <AvatarImage src={userStats.avatar || "/placeholder.svg"} />
-              <AvatarFallback>田中</AvatarFallback>
+              <AvatarImage src={userStats.avatar} />
+              <AvatarFallback>{userProfile?.name?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
             <UserButton afterSignOutUrl="/" />
           </div>
@@ -132,10 +176,10 @@ export default function Component() {
             {/* User Profile */}
             <div className="text-center">
               <Avatar className="w-16 h-16 mx-auto mb-3">
-                <AvatarImage src={userStats.avatar || "/placeholder.svg"} />
-                <AvatarFallback className="text-lg">田中</AvatarFallback>
+                <AvatarImage src={userStats.avatar} />
+                <AvatarFallback>{userProfile?.name?.charAt(0) || 'U'}</AvatarFallback>
               </Avatar>
-              <h3 className="font-semibold text-gray-900">{userStats.name}</h3>
+              <h3 className="font-semibold text-gray-900">{userProfile?.name}</h3>
               <p className="text-sm text-gray-500">就活生</p>
               <Badge className="mt-2 bg-green-100 text-green-700">アクティブ</Badge>
             </div>
@@ -150,281 +194,129 @@ export default function Component() {
                 <span>ダッシュボード</span>
               </Link>
               <Link
-                href="#"
+                href="/self-analysis-page"
                 className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-700"
               >
                 <User className="w-4 h-4" />
                 <span>自己分析</span>
               </Link>
-              <Link
-                href="#"
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-700"
-              >
-                <Briefcase className="w-4 h-4" />
-                <span>ポートフォリオ</span>
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-700"
-              >
-                <FileText className="w-4 h-4" />
-                <span>ES管理</span>
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-700"
-              >
-                <Users className="w-4 h-4" />
-                <span>コミュニティ</span>
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-700"
-              >
-                <Settings className="w-4 h-4" />
-                <span>設定</span>
-              </Link>
             </nav>
-
-            {/* Weekly Progress */}
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-gray-900">今週の進捗</h4>
-                <span className="text-sm font-medium text-blue-600">{userStats.weeklyGoalProgress}%</span>
-              </div>
-              <div className="mb-2">
-                <Progress value={userStats.weeklyGoalProgress} />
-              </div>
-              <p className="text-xs text-gray-600">目標まであと少し！</p>
-            </div>
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
-          <div className="max-w-7xl mx-auto">
-            {/* Welcome Section */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">おかえりなさい、{userStats.name}さん！</h1>
-              <p className="text-gray-600">今日も就活を頑張りましょう。あなたの進捗を確認してみてください。</p>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">完了した自己分析</p>
-                      <p className="text-2xl font-bold text-purple-600">{userStats.completedAnalyses}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <User className="w-6 h-6 text-purple-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">ポートフォリオ作品</p>
-                      <p className="text-2xl font-bold text-blue-600">{userStats.portfolioProjects}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Briefcase className="w-6 h-6 text-blue-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">提出したES</p>
-                      <p className="text-2xl font-bold text-green-600">{userStats.submittedES}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-green-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">コミュニティ投稿</p>
-                      <p className="text-2xl font-bold text-orange-600">{userStats.communityPosts}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <MessageSquare className="w-6 h-6 text-orange-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <User className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">自己分析を始める</h3>
-                  <p className="text-sm text-gray-600 mb-4">新しい診断ツールで自分を深く理解しよう</p>
-                  <Button size="sm" className="w-full">
-                    診断開始
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <Plus className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">新しい作品を追加</h3>
-                  <p className="text-sm text-gray-600 mb-4">ポートフォリオに新しいプロジェクトを追加</p>
-                  <Button size="sm" className="w-full" variant="outline">
-                    作品追加
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <FileText className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">ESを作成</h3>
-                  <p className="text-sm text-gray-600 mb-4">新しい企業のエントリーシートを作成</p>
-                  <Button size="sm" className="w-full" variant="outline">
-                    ES作成
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <MessageSquare className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">投稿する</h3>
-                  <p className="text-sm text-gray-600 mb-4">コミュニティで経験や質問をシェア</p>
-                  <Button size="sm" className="w-full" variant="outline">
-                    投稿作成
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Recent Activity */}
-              <div className="lg:col-span-2">
-                <Card className="border-0 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Clock className="w-5 h-5 text-blue-600" />
-                      <span>最近のアクティビティ</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {recentActivities.map((activity) => (
-                        <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100`}>
-                            <activity.icon className={`w-4 h-4 ${activity.color}`} />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                            <p className="text-xs text-gray-500">{activity.time}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <Button variant="ghost" className="w-full mt-4">
-                      すべて見る
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Right Sidebar */}
-              <div className="space-y-6">
-                {/* Weekly Tasks */}
-                <Card className="border-0 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Target className="w-5 h-5 text-green-600" />
-                      <span>今週のタスク</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {weeklyTasks.map((task) => (
-                        <div key={task.id} className="flex items-center space-x-3">
-                          <CheckCircle className={`w-5 h-5 ${task.completed ? "text-green-500" : "text-gray-300"}`} />
-                          <span
-                            className={`text-sm ${task.completed ? "text-gray-500 line-through" : "text-gray-900"}`}
-                          >
-                            {task.task}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Upcoming Deadlines */}
-                <Card className="border-0 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Calendar className="w-5 h-5 text-red-600" />
-                      <span>締切予定</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {upcomingDeadlines.map((deadline, index) => (
-                        <div key={index} className="p-3 rounded-lg border border-gray-100">
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="text-sm font-medium text-gray-900">{deadline.company}</h4>
-                            <Badge variant={deadline.urgent ? "default" : "secondary"} className="text-xs">
-                              {deadline.deadline}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-gray-600">{deadline.position}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Achievement Badge */}
-                <Card className="border-0 shadow-sm bg-gradient-to-r from-yellow-50 to-orange-50">
-                  <CardContent className="p-6 text-center">
-                    <div className="w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Award className="w-6 h-6 text-white" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">今週の達成者！</h3>
-                    <p className="text-sm text-gray-600">3つの自己分析を完了しました</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+        <main className="flex-1 p-6 bg-gray-50">
+          {/* Stats Grid */}
+          <div className="grid gap-6 mb-6 grid-cols-1 md:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">完了した自己分析</CardTitle>
+                <Target className="w-4 h-4 text-gray-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats.completedAnalyses}</div>
+                <p className="text-xs text-gray-500">+2 先週より</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">ポートフォリオ作品</CardTitle>
+                <Target className="w-4 h-4 text-gray-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats.portfolioProjects}</div>
+                <p className="text-xs text-gray-500">+1 先週より</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">提出したES</CardTitle>
+                <Target className="w-4 h-4 text-gray-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats.submittedES}</div>
+                <p className="text-xs text-gray-500">+3 先週より</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">コミュニティ投稿</CardTitle>
+                <Target className="w-4 h-4 text-gray-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats.communityPosts}</div>
+                <p className="text-xs text-gray-500">+5 先週より</p>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Activity Section */}
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">最近の活動</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-4">
+                      <activity.icon className={`w-5 h-5 ${activity.color}`} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                        <p className="text-xs text-gray-500">{activity.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">今週のタスク</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {weeklyTasks.map((task) => (
+                    <div key={task.id} className="flex items-center gap-4">
+                      <CheckCircle className={`w-5 h-5 ${task.completed ? "text-green-500" : "text-gray-300"}`} />
+                      <span className={`text-sm ${task.completed ? "text-gray-500 line-through" : "text-gray-900"}`}>
+                        {task.task}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Upcoming Deadlines */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">近日締め切り</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {upcomingDeadlines.map((deadline) => (
+                  <div key={deadline.id} className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium text-gray-900">{deadline.company}</h4>
+                      <Badge variant={deadline.urgent ? "default" : "secondary"} className="text-xs">
+                        {deadline.deadline}
+                      </Badge>
+                      <p className="text-xs text-gray-600">{deadline.position}</p>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </main>
       </div>
-    </div>
-  )
+    </>
+  );
 }
 

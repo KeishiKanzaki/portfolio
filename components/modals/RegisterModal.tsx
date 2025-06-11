@@ -5,6 +5,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import {
   Dialog,
@@ -25,28 +26,82 @@ import { Input } from "@/components/ui/input";
 import { EmojiPicker } from "@/components/inputs/EmojiPicker";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/auth/FormError";
+import { useToast } from "@/components/providers/ToastContext";
 
 import { useRegisterModal } from "@/hooks/useRegisterModal";
 import { RegisterSchema } from "@/schemas";
+import { supabase } from "@/lib/supabase";
 
 export const RegisterModal = () => {
   const { isOpen, onClose } = useRegisterModal();
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof RegisterSchema>>({
     resolver: zodResolver(RegisterSchema),
     defaultValues: {
       name: "",
       email: "",
-      image: "😀",
       password: "",
     },
   });
 
   const onSubmit = async (values: z.infer<typeof RegisterSchema>) => {
-    console.log({ values });
-    // TODO: 登録機能の実装
+    setError("");
+    startTransition(async () => {
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: { name: values.name },
+          emailRedirectTo: undefined, // メール確認を無効化
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+        showToast("登録に失敗しました: " + error.message, "error");
+        return;
+      }
+
+      // 認証ユーザー作成後、usersテーブルにも登録
+      const user = data.user;
+      if (user) {
+        // 既存ユーザーチェック
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select()
+          .eq('id', user.id)
+          .single();
+
+        // 既存ユーザーがいない場合のみinsert
+        if (!existingUser) {
+          const { error: dbError } = await supabase.from("users").insert([
+            {
+              id: user.id,
+              name: values.name,
+              email: values.email,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+          if (dbError) {
+            const errorMessage = dbError.message.includes("duplicate key value") 
+              ? "このユーザーはすでに登録されています"
+              : "DB登録に失敗しました: " + dbError.message;
+            
+            setError(errorMessage);
+            showToast(errorMessage, "error");
+            return;
+          }
+        }
+
+        showToast("登録が完了しました！", "success");
+        handleClose();
+        router.push('/dashboard');
+      }
+    });
   };
 
   const handleClose = () => {
@@ -84,22 +139,7 @@ export const RegisterModal = () => {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="image"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Avatar</FormLabel>
-                  <FormControl>
-                    <EmojiPicker
-                      onChange={field.onChange}
-                      value={field.value}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+           
             <FormField
               control={form.control}
               name="email"
@@ -144,7 +184,7 @@ export const RegisterModal = () => {
                 disabled={isPending}
               >
                 {isPending && <Loader2 className="animate-spin" />}
-                <span>Register</span>
+                <span>登録</span>
               </Button>
             </div>
           </form>
