@@ -17,7 +17,7 @@ import { redirect } from "next/navigation"
 import TaskToggle from "@/components/dashboard/TaskToggle"
 import LogoutButton from "@/components/dashboard/LogoutButton"
 
-interface Activity {
+type Activity = {
   id: string;
   type: string;
   title: string;
@@ -25,14 +25,14 @@ interface Activity {
   description?: string;
 }
 
-interface Task {
+type Task = {
   id: string;
   task: string;
   completed: boolean;
   due_date?: string;
 }
 
-interface Deadline {
+type Deadline = {
   id: string;
   company: string;
   deadline: string;

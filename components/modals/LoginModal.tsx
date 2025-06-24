@@ -25,7 +25,7 @@ import { LoginSchema } from "@/schemas";
 import { LOGIN_SUCCESS_REDIRECT } from "@/routes";
 import { useRegisterModal } from "@/hooks/useRegisterModal";
 import { useLoginModal } from "@/hooks/useLoginModal";
-import { supabase } from "@/lib/supabase";
+import { createBrowserSupabaseClient } from "@/lib/supabase";
 
 export const LoginModal = () => {
   const [error, setError] = useState("");
@@ -33,6 +33,7 @@ export const LoginModal = () => {
   const { onOpen: onOpenRegister } = useRegisterModal();
   const { isOpen, onClose } = useLoginModal();
   const router = useRouter();
+  const supabase = createBrowserSupabaseClient();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
