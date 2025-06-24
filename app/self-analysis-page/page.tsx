@@ -9,6 +9,7 @@ import { Save, Lightbulb, Edit, Trash2, Plus } from "lucide-react"
 import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
 import { useAuth } from "@/components/providers/AuthProvider"
+import { useSidebar } from "@/components/providers/SidebarProvider"
 // Simple toast implementation for now
 const useToast = () => {
   const toast = ({ title, description, variant }: { title?: string; description?: string; variant?: "default" | "destructive" }) => {
@@ -32,6 +33,7 @@ interface SelfAnalysis {
 
 export default function SelfAnalysisPage() {
   const { user: authUser, loading } = useAuth()
+  const { sidebarOpen, setSidebarOpen, toggleSidebar } = useSidebar()
   const [analyses, setAnalyses] = useState<SelfAnalysis[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<SelfAnalysis | null>(null)
   const [content, setContent] = useState("")
@@ -243,10 +245,20 @@ export default function SelfAnalysisPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100/40">
-      <Sidebar user={user} />
-      <div className="flex flex-col flex-1">
-        <Header user={user} notificationCount={2} />
+    <div className="relative flex h-screen bg-gray-100/40">
+      <Sidebar 
+        user={user} 
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${
+        sidebarOpen ? 'lg:ml-64' : 'ml-0'
+      }`}>
+        <Header 
+          user={user} 
+          notificationCount={2}
+          onMenuClick={toggleSidebar}
+        />
         <main className="flex-1 p-6 overflow-auto">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

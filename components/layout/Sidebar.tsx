@@ -4,16 +4,19 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Home, User } from "lucide-react"
+import { Home, User, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface SidebarProps {
   user: {
     name?: string
     email?: string
   }
+  isOpen: boolean
+  onClose: () => void
 }
 
-export default function Sidebar({ user }: SidebarProps) {
+export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
 
   const navItems = [
@@ -32,8 +35,24 @@ export default function Sidebar({ user }: SidebarProps) {
   ]
 
   return (
-    <aside className="w-64 bg-white border-r min-h-screen p-6">
-      <div className="space-y-6">
+    <aside className={`
+      fixed inset-y-0 left-0 z-50 w-64 bg-white border-r min-h-screen p-6
+      transform transition-transform duration-300 ease-in-out
+      ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+    `}>
+      {/* Close button */}
+      <div className="flex justify-end mb-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onClose}
+          className="p-2"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+        
+        <div className="space-y-6">
         {/* User Profile */}
         <div className="text-center">
           <Avatar className="w-16 h-16 mx-auto mb-3">

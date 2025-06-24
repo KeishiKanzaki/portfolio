@@ -9,6 +9,7 @@ import { CheckCircle, Circle, BarChart3, Target, Clock, TrendingUp } from "lucid
 import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
 import { useAuth } from "@/components/providers/AuthProvider"
+import { useSidebar } from "@/components/providers/SidebarProvider"
 
 interface Task {
   id: string
@@ -26,6 +27,7 @@ interface User {
 
 export default function DashboardPage() {
   const { user: authUser, loading } = useAuth()
+  const { sidebarOpen, setSidebarOpen, toggleSidebar } = useSidebar()
   
   const [tasks, setTasks] = useState<Task[]>([
     {
@@ -132,10 +134,20 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100/40">
-      <Sidebar user={user} />
-      <div className="flex flex-col flex-1">
-        <Header user={user} notificationCount={3} />
+    <div className="relative flex h-screen bg-gray-100/40">
+      <Sidebar 
+        user={user} 
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${
+        sidebarOpen ? 'lg:ml-64' : 'ml-0'
+      }`}>
+        <Header 
+          user={user} 
+          notificationCount={3}
+          onMenuClick={toggleSidebar}
+        />
         <main className="flex-1 p-6 overflow-auto">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* ダッシュボードヘッダー */}
