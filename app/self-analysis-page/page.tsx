@@ -94,7 +94,6 @@ export default function SelfAnalysisPage() {
     <div className="max-w-xl mx-auto mt-10">
       {/* 右上にUserButtonを常時表示 */}
       <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000 }}>
-        <UserButton afterSignOutUrl="/login" />
       </div>
 
       <h1 className="text-2xl font-bold mb-4">自己分析を投稿</h1>

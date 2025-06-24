@@ -15,8 +15,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { StartFreeButton } from "@/components/StartFreeButton";
+import { useLoginModal } from "@/hooks/useLoginModal";
 
 export default function HomePage() {
+  const { onOpen: onOpenLogin } = useLoginModal();
+
   return (
     <main className="p-6">
       {/* Header */}
@@ -40,10 +43,15 @@ export default function HomePage() {
             </Link>
           </nav>
           <div className="flex items-center space-x-3">
-            <Button variant="ghost" className="text-gray-600" asChild>
-                ロ
-            </Button>
             <StartFreeButton />
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-lg text-white bg-gradient-to-r from-green-400 to-green-500 hover:from-green-600 hover:to-green-500 hover:text-white px-8 py-3"
+              onClick={onOpenLogin}
+            >
+              ログイン
+            </Button>
           </div>
         </div>
       </header>
@@ -65,14 +73,26 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <StartFreeButton />
-            <Button size="lg" variant="outline" className="text-lg text-white bg-gradient-to-r from-green-400 to-green-500 hover:from-green-600 hover:to-green-500 hover:text-white px-8 py-3">
-              <Link href="/sign-in">
-                ログイン
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-lg text-white bg-gradient-to-r from-green-400 to-green-500 hover:from-green-600 hover:to-green-500 hover:text-white px-8 py-3"
+              onClick={onOpenLogin}
+            >
+              ログイン
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-lg px-8 py-3 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
+              asChild
+            >
+              <Link href="/demo">
+                デモを見る
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
-            </Button>
-            <Button size="lg" variant="outline" className="text-lg px-8 py-3">
-              デモを見る
-            </Button>
+            </Button> 
+            
           </div>
           <div className="mt-12 flex items-center justify-center space-x-8 text-sm text-gray-500">
             <div className="flex items-center space-x-2">
