@@ -1,278 +1,246 @@
-import { getDashboardData, DashboardData } from "./actions";
+"use client"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  Bell,
-  Briefcase,
-  Home,
-  Search,
-  Target,
-  User,
-  ArrowRight,
-} from "lucide-react"
-import Link from "next/link"
-import { redirect } from "next/navigation"
-import TaskToggle from "@/components/dashboard/TaskToggle"
-import LogoutButton from "@/components/dashboard/LogoutButton"
+import { CheckCircle, Circle, BarChart3, Target, Clock, TrendingUp } from "lucide-react"
+import Header from "@/components/layout/Header"
+import Sidebar from "@/components/layout/Sidebar"
 
-type Activity = {
-  id: string;
-  type: string;
-  title: string;
-  created_at: string;
-  description?: string;
+interface Task {
+  id: string
+  title: string
+  description: string
+  completed: boolean
+  priority: "high" | "medium" | "low"
+  dueDate: string
 }
 
-type Task = {
-  id: string;
-  task: string;
-  completed: boolean;
-  due_date?: string;
+interface User {
+  name: string
+  email: string
 }
 
-type Deadline = {
-  id: string;
-  company: string;
-  deadline: string;
-  position: string;
-  urgent: boolean;
-}
+export default function DashboardPage() {
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: "1",
+      title: "履歴書の更新",
+      description: "最新の職歴と技術スキルを反映",
+      completed: false,
+      priority: "high",
+      dueDate: "2024-01-15",
+    },
+    {
+      id: "2",
+      title: "ポートフォリオサイトの改善",
+      description: "レスポンシブデザインの最適化",
+      completed: true,
+      priority: "medium",
+      dueDate: "2024-01-10",
+    },
+    {
+      id: "3",
+      title: "自己分析レポートの作成",
+      description: "キャリア目標と強みの整理",
+      completed: false,
+      priority: "high",
+      dueDate: "2024-01-20",
+    },
+    {
+      id: "4",
+      title: "面接対策",
+      description: "よくある質問への回答準備",
+      completed: false,
+      priority: "medium",
+      dueDate: "2024-01-25",
+    },
+  ])
 
-// 時間を相対的に表示する関数
-function formatRelativeTime(dateString: string) {
-  const now = new Date();
-  const date = new Date(dateString);
-  const diff = now.getTime() - date.getTime();
-  
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  if (hours < 24) {
-    return `${hours}時間前`;
+  const [user, setUser] = useState<User>({
+    name: "田中太郎",
+    email: "tanaka@example.com",
+  })
+
+  const completedTasks = tasks.filter((task) => task.completed).length
+  const totalTasks = tasks.length
+  const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
+
+  const toggleTask = (taskId: string) => {
+    setTasks((prev) =>
+      prev.map((task) => (task.id === taskId ? { ...task, completed: !task.completed } : task))
+    )
   }
-  
-  const days = Math.floor(hours / 24);
-  return `${days}日前`;
-}
 
-export default async function DashboardPage() {
-  console.log("=== ダッシュボードページ開始 ===");
-  
-  try {
-    // Server Actionからダッシュボードデータを取得
-    const dashboardData = await getDashboardData();
-    
-    console.log("ダッシュボードデータ取得結果:", dashboardData ? "成功" : "失敗");
-    
-    // 認証されていない場合の処理を一時的にコメントアウト
-    if (!dashboardData) {
-      console.log("ダッシュボードデータなし - エラー表示");
-      // redirect('/auth/login');
-      
-      // エラー表示で止める
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-red-600 mb-4">認証エラー</h1>
-            <p className="text-gray-600">ダッシュボードデータの取得に失敗しました</p>
-            <p className="text-sm text-gray-500 mt-2">コンソールログを確認してください</p>
-          </div>
-        </div>
-      );
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return "bg-red-100 text-red-800"
+      case "medium":
+        return "bg-yellow-100 text-yellow-800"
+      case "low":
+        return "bg-green-100 text-green-800"
+      default:
+        return "bg-gray-100 text-gray-800"
     }
+  }
 
-    console.log("ダッシュボードページ正常表示");
-    const { user, stats, recentActivities, weeklyTasks, upcomingDeadlines } = dashboardData;
+  const getPriorityText = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return "高"
+      case "medium":
+        return "中"
+      case "low":
+        return "低"
+      default:
+        return "なし"
+    }
+  }
 
-    return (
-      <>
-        <header className="flex h-14 lg:h-[60px] items-center gap-4 border-b bg-gray-100/40 px-6">
-          <div className="flex flex-1 items-center justify-end md:justify-between">
-            <div className="flex items-center gap-4 md:gap-2 lg:gap-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="w-4 h-4" />
-                <Badge className="ml-1" variant="secondary">
-                  3
-                </Badge>
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Search className="w-4 h-4" />
-              </Button>
-              <LogoutButton />
-              <Avatar className="w-8 h-8">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </header>
-
-        <div className="flex">
-          {/* Sidebar */}
-          <aside className="w-64 bg-white border-r min-h-screen p-6">
-            <div className="space-y-6">
-              {/* User Profile */}
-              <div className="text-center">
-                <Avatar className="w-16 h-16 mx-auto mb-3">
-                  <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                  <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
-                </Avatar>
-                <h3 className="font-semibold text-gray-900">{user.name}</h3>
-                <p className="text-sm text-gray-500">就活生</p>
-                <Badge className="mt-2 bg-green-100 text-green-700">アクティブ</Badge>
-              </div>
-
-              {/* Navigation */}
-              <nav className="space-y-2">
-                <Link
-                  href="#"
-                  className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium"
-                >
-                  <Home className="w-4 h-4" />
-                  <span>ダッシュボード</span>
-                </Link>
-                <Link
-                  href="/self-analysis-page"
-                  className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-700"
-                >
-                  <User className="w-4 h-4" />
-                  <span>自己分析</span>
-                </Link>
-              </nav>
-            </div>
-          </aside>
-
-          {/* Main Content */}
-          <main className="flex-1 p-6 bg-gray-50">
-            {/* Stats Grid */}
-            <div className="grid gap-6 mb-6 grid-cols-1 md:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">完了した自己分析</CardTitle>
-                  <Target className="w-4 h-4 text-gray-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.completedAnalyses}</div>
-                  <p className="text-xs text-gray-500">+2 先週より</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">ポートフォリオ作品</CardTitle>
-                  <Target className="w-4 h-4 text-gray-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.portfolioProjects}</div>
-                  <p className="text-xs text-gray-500">+1 先週より</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">提出したES</CardTitle>
-                  <Target className="w-4 h-4 text-gray-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.submittedES}</div>
-                  <p className="text-xs text-gray-500">+3 先週より</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">コミュニティ投稿</CardTitle>
-                  <Target className="w-4 h-4 text-gray-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.communityPosts}</div>
-                  <p className="text-xs text-gray-500">+5 先週より</p>
-                </CardContent>
-              </Card>
+  return (
+    <div className="flex h-screen bg-gray-100/40">
+      <Sidebar user={user} />
+      <div className="flex flex-col flex-1">
+        <Header user={user} notificationCount={3} />
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* ダッシュボードヘッダー */}
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">ダッシュボード</h1>
+              <p className="text-gray-600 mt-1">キャリア成長の進捗を確認しましょう</p>
             </div>
 
-            {/* Activity Section */}
-            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+            {/* 統計カード */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">最近の活動</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">完了タスク</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {recentActivities.map((activity) => {
-                      const IconComponent = activity.type === 'analysis' ? User : Briefcase;
-                      const iconColor = activity.type === 'analysis' ? 'text-purple-600' : 'text-blue-600';
-                      
-                      return (
-                        <div key={activity.id} className="flex items-start gap-4">
-                          <IconComponent className={`w-5 h-5 ${iconColor}`} />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                            <p className="text-xs text-gray-500">{formatRelativeTime(activity.created_at)}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="text-2xl font-bold">{completedTasks}</div>
+                  <p className="text-xs text-muted-foreground">/ {totalTasks} タスク</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">進捗率</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{Math.round(completionRate)}%</div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${completionRate}%` }}
+                    ></div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">今週のタスク</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">今月の目標</CardTitle>
+                  <Target className="h-4 w-4 text-purple-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {weeklyTasks.map((task) => (
-                      <div key={task.id} className="flex items-center gap-4">
-                        <TaskToggle task={task} />
-                        <span className={`text-sm ${task.completed ? "text-gray-500 line-through" : "text-gray-900"}`}>
-                          {task.task}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  <div className="text-2xl font-bold">5</div>
+                  <p className="text-xs text-muted-foreground">アクション項目</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">成長スコア</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">78</div>
+                  <p className="text-xs text-muted-foreground">前月比 +12</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Upcoming Deadlines */}
-            <Card className="mt-6">
+            {/* タスク一覧 */}
+            <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">近日締め切り</CardTitle>
+                <CardTitle>アクション項目</CardTitle>
+                <CardDescription>キャリア成長のための重要なタスクを管理しましょう</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {upcomingDeadlines.map((deadline) => (
-                    <div key={deadline.id} className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-medium text-gray-900">{deadline.company}</h4>
-                        <Badge variant={deadline.urgent ? "default" : "secondary"} className="text-xs">
-                          {deadline.deadline}
-                        </Badge>
-                        <p className="text-xs text-gray-600">{deadline.position}</p>
+                  {tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center space-x-4 p-4 rounded-lg border bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      <button
+                        onClick={() => toggleTask(task.id)}
+                        className="w-5 h-5 cursor-pointer"
+                      >
+                        {task.completed ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <Circle className="w-5 h-5 text-gray-300" />
+                        )}
+                      </button>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <h3
+                            className={`font-medium ${
+                              task.completed ? "line-through text-gray-500" : "text-gray-900"
+                            }`}
+                          >
+                            {task.title}
+                          </h3>
+                          <Badge className={getPriorityColor(task.priority)}>
+                            {getPriorityText(task.priority)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <Clock className="h-4 w-4 text-gray-400" />
+                          <span className="text-xs text-gray-500">
+                            期限: {new Date(task.dueDate).toLocaleDateString("ja-JP")}
+                          </span>
+                        </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
-          </main>
-        </div>
-      </>
-    );
-  } catch (error) {
-    console.error("ダッシュボードページでエラー:", error);
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">ページエラー</h1>
-          <p className="text-gray-600">ダッシュボードページでエラーが発生しました</p>
-          <pre className="text-xs text-gray-500 mt-2 max-w-md overflow-auto">
-            {error instanceof Error ? error.message : String(error)}
-          </pre>
-        </div>
+
+            {/* クイックアクション */}
+            <Card>
+              <CardHeader>
+                <CardTitle>クイックアクション</CardTitle>
+                <CardDescription>よく使用する機能へのショートカット</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Button variant="outline" className="h-20 flex-col space-y-2">
+                    <BarChart3 className="h-6 w-6" />
+                    <span>進捗レポート</span>
+                  </Button>
+                  <Button variant="outline" className="h-20 flex-col space-y-2">
+                    <Target className="h-6 w-6" />
+                    <span>目標設定</span>
+                  </Button>
+                  <Button variant="outline" className="h-20 flex-col space-y-2">
+                    <TrendingUp className="h-6 w-6" />
+                    <span>成長分析</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
       </div>
-    );
-  }
+    </div>
+  )
 }

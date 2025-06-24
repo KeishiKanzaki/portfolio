@@ -2,8 +2,8 @@
 
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { signOut } from "@/app/dashboard/actions";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function LogoutButton() {
   const [isPending, startTransition] = useTransition();
@@ -12,12 +12,12 @@ export default function LogoutButton() {
   const handleLogout = () => {
     startTransition(async () => {
       try {
-        const result = await signOut();
-        if (result.success) {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error("ログアウトエラー:", error);
+        } else {
           router.push('/');
           router.refresh();
-        } else {
-          console.error("ログアウトエラー:", result.error);
         }
       } catch (error) {
         console.error("ログアウトエラー:", error);

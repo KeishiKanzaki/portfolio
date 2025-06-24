@@ -1,168 +1,341 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { UserButton } from "@clerk/nextjs";
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Save, Lightbulb, Edit, Trash2, Plus } from "lucide-react"
+import Header from "@/components/layout/Header"
+import Sidebar from "@/components/layout/Sidebar"
+// Simple toast implementation for now
+const useToast = () => {
+  const toast = ({ title, description, variant }: { title?: string; description?: string; variant?: "default" | "destructive" }) => {
+    alert(`${title}: ${description}`)
+  }
+  return { toast }
+}
+
+interface User {
+  name: string
+  email: string
+}
+
+interface SelfAnalysis {
+  id: string
+  title: string
+  content: string
+  createdAt: string
+  updatedAt: string
+}
 
 export default function SelfAnalysisPage() {
-  const [content, setContent] = useState("");
-  const [message, setMessage] = useState("");
-  const [entries, setEntries] = useState<any[]>([]);
-  const [editId, setEditId] = useState<number | null>(null);
-  const [editContent, setEditContent] = useState("");
+  const [analyses, setAnalyses] = useState<SelfAnalysis[]>([])
+  const [currentAnalysis, setCurrentAnalysis] = useState<SelfAnalysis | null>(null)
+  const [content, setContent] = useState("")
+  const [title, setTitle] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [suggestion, setSuggestion] = useState("")
+  const { toast } = useToast()
 
-  //編集開始
-  const startEdit = (id: number, content: string) => {
-    setEditId(id);
-    setEditContent(content);
-  };
+  const [user] = useState<User>({
+    name: "田中太郎",
+    email: "tanaka@example.com",
+  })
 
-  // 編集送信
-  const handleUpdate = async () => {
-    const res = await fetch(`/api/self-analysis/${editId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editId, content: editContent }),
-    });
-
-    if (res.ok) {
-      setMessage("更新しました！");
-      setEditId(null);
-      setEditContent("");
-      fetchEntries(); // 再取得
-    } else {
-      setMessage("更新に失敗しました。");
-    }
-  };
-
-  //削除
-  const handleDelete = async (id: number) => {
-    const confirmed = confirm("本当に削除しますか？");
-    if (!confirmed) return;
-
-    const res = await fetch(`/api/self-analysis/${id}`, {
-      method: "DELETE",
-    });
-
-    if (res.ok) {
-      setMessage("削除しました！");
-      fetchEntries(); // 再取得
-    } else {
-      setMessage("削除に失敗しました。");
-    }
-  };
-
-  // 保存
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const res = await fetch("/api/self-analysis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-
-      if (res.ok) {
-        setMessage("保存しました！");
-        setContent("");
-        fetchEntries(); // 再取得
-      } else {
-        const errorData = await res.json();
-        setMessage(`保存に失敗しました: ${errorData.error || "不明なエラー"}`);
-      }
-    } catch (error) {
-      setMessage(
-        "保存に失敗しました。ネットワークエラーが発生した可能性があります。"
-      );
-    }
-  };
-
-  // データ取得
-  const fetchEntries = async () => {
-    const res = await fetch("/api/self-analysis");
-    if (res.ok) {
-      const data = await res.json();
-      setEntries(data);
-    }
-  };
-
+  // ローカルストレージから分析データを読み込み
   useEffect(() => {
-    fetchEntries();
-  }, []);
+    const savedAnalyses = localStorage.getItem("selfAnalyses")
+    if (savedAnalyses) {
+      setAnalyses(JSON.parse(savedAnalyses))
+    }
+  }, [])
+
+  // 文字数カウント
+  const characterCount = content.length
+
+  // 新しい分析を作成
+  const createNewAnalysis = () => {
+    setCurrentAnalysis(null)
+    setTitle("")
+    setContent("")
+    setSuggestion("")
+  }
+
+  // 分析を保存
+  const saveAnalysis = () => {
+    if (!title.trim() || !content.trim()) {
+      toast({
+        title: "エラー",
+        description: "タイトルと内容を入力してください。",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const now = new Date().toISOString()
+
+    if (currentAnalysis) {
+      // 既存の分析を更新
+      const updatedAnalysis = {
+        ...currentAnalysis,
+        title,
+        content,
+        updatedAt: now,
+      }
+      const updatedAnalyses = analyses.map((a) => (a.id === currentAnalysis.id ? updatedAnalysis : a))
+      setAnalyses(updatedAnalyses)
+      setCurrentAnalysis(updatedAnalysis)
+      localStorage.setItem("selfAnalyses", JSON.stringify(updatedAnalyses))
+    } else {
+      // 新しい分析を作成
+      const newAnalysis: SelfAnalysis = {
+        id: Date.now().toString(),
+        title,
+        content,
+        createdAt: now,
+        updatedAt: now,
+      }
+      const updatedAnalyses = [...analyses, newAnalysis]
+      setAnalyses(updatedAnalyses)
+      setCurrentAnalysis(newAnalysis)
+      localStorage.setItem("selfAnalyses", JSON.stringify(updatedAnalyses))
+    }
+
+    toast({
+      title: "保存完了",
+      description: "自己分析が保存されました。",
+    })
+  }
+
+  // 分析を選択
+  const selectAnalysis = (analysis: SelfAnalysis) => {
+    setCurrentAnalysis(analysis)
+    setTitle(analysis.title)
+    setContent(analysis.content)
+    setSuggestion("")
+  }
+
+  // 分析を削除
+  const deleteAnalysis = (id: string) => {
+    const updatedAnalyses = analyses.filter((a) => a.id !== id)
+    setAnalyses(updatedAnalyses)
+    localStorage.setItem("selfAnalyses", JSON.stringify(updatedAnalyses))
+
+    if (currentAnalysis?.id === id) {
+      createNewAnalysis()
+    }
+
+    toast({
+      title: "削除完了",
+      description: "自己分析が削除されました。",
+    })
+  }
+
+  // AI提案を取得
+  const getSuggestion = async () => {
+    if (!content.trim()) {
+      toast({
+        title: "エラー",
+        description: "分析内容を入力してから提案を求めてください。",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/suggest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      })
+
+      if (!response.ok) {
+        throw new Error("提案の取得に失敗しました")
+      }
+
+      const data = await response.json()
+      setSuggestion(data.suggestion)
+    } catch (error) {
+      toast({
+        title: "エラー",
+        description: "AI提案の取得に失敗しました。",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // AI修正を取得
+  const getImprovement = async () => {
+    if (!content.trim()) {
+      toast({
+        title: "エラー",
+        description: "分析内容を入力してから修正を求めてください。",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/improve", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      })
+
+      if (!response.ok) {
+        throw new Error("修正の取得に失敗しました")
+      }
+
+      const data = await response.json()
+      setContent(data.improvedContent)
+      toast({
+        title: "修正完了",
+        description: "内容が改善されました。",
+      })
+    } catch (error) {
+      toast({
+        title: "エラー",
+        description: "AI修正の取得に失敗しました。",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <div className="max-w-xl mx-auto mt-10">
-      {/* 右上にUserButtonを常時表示 */}
-      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000 }}>
+    <div className="flex h-screen bg-gray-100/40">
+      <Sidebar user={user} />
+      <div className="flex flex-col flex-1">
+        <Header user={user} notificationCount={2} />
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* サイドバー - 保存された分析一覧 */}
+              <div className="lg:col-span-1">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">保存された分析</CardTitle>
+                      <Button onClick={createNewAnalysis} size="sm">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {analyses.length === 0 ? (
+                      <p className="text-sm text-gray-500">まだ分析がありません</p>
+                    ) : (
+                      analyses.map((analysis) => (
+                        <div
+                          key={analysis.id}
+                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                            currentAnalysis?.id === analysis.id ? "bg-blue-50 border-blue-200" : "bg-white hover:bg-gray-50"
+                          }`}
+                          onClick={() => selectAnalysis(analysis)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-medium text-sm truncate">{analysis.title}</h3>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteAnalysis(analysis.id)
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(analysis.updatedAt).toLocaleDateString("ja-JP")}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* メインエリア */}
+              <div className="lg:col-span-3 space-y-6">
+                {/* 入力エリア */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>自己分析</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">タイトル</label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="分析のタイトルを入力してください"
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium">内容</label>
+                        <Badge variant="secondary">{characterCount} 文字</Badge>
+                      </div>
+                      <Textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        placeholder="自己分析の内容を書いてください..."
+                        className="min-h-[300px] resize-none"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={saveAnalysis} className="bg-green-600 hover:bg-green-700">
+                        <Save className="h-4 w-4 mr-2" />
+                        保存
+                      </Button>
+                      <Button onClick={getSuggestion} variant="outline" disabled={isLoading}>
+                        <Lightbulb className="h-4 w-4 mr-2" />
+                        AI提案
+                      </Button>
+                      <Button onClick={getImprovement} variant="outline" disabled={isLoading}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        AI修正
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* AI提案エリア */}
+                {suggestion && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center">
+                        <Lightbulb className="h-5 w-5 mr-2 text-yellow-500" />
+                        AI提案
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <p className="whitespace-pre-wrap">{suggestion}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
-
-      <h1 className="text-2xl font-bold mb-4">自己分析を投稿</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={5}
-          className="w-full p-2 border rounded"
-          placeholder="私の強みは..."
-          required
-        />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          保存
-        </button>
-      </form>
-      {message && <p className="mt-4 text-sm text-green-600">{message}</p>}
-
-      <hr className="my-6" />
-
-      <h2 className="text-xl font-semibold mb-2">投稿一覧</h2>
-      <ul className="space-y-3">
-        {entries.map((entry) => (
-          <li key={entry.id} className="p-3 border rounded bg-gray-50">
-            {editId === entry.id ? (
-              <>
-                <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full p-2 border rounded mb-2"
-                />
-                <button
-                  onClick={handleUpdate}
-                  className="mr-2 px-3 py-1 bg-green-600 text-white rounded"
-                >
-                  更新
-                </button>
-                <button
-                  onClick={() => setEditId(null)}
-                  className="px-3 py-1 bg-gray-400 text-white rounded"
-                >
-                  キャンセル
-                </button>
-              </>
-            ) : (
-              <>
-                <p>{entry.content}</p>
-                <div className="mt-2 flex gap-2">
-                  <button
-                    onClick={() => startEdit(entry.id, entry.content)}
-                    className="px-2 py-1 bg-blue-500 text-white rounded"
-                  >
-                    編集
-                  </button>
-                  <button
-                    onClick={() => handleDelete(entry.id)}
-                    className="px-2 py-1 bg-red-500 text-white rounded"
-                  >
-                    削除
-                  </button>
-                </div>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
     </div>
-  );
+  )
 }
