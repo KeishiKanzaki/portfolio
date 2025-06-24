@@ -21,7 +21,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("self_analysis")
       .select("*")
-      // .eq("user_id", user.id.toString())
+      .eq("user_id", user.id.toString())
       .order("created_at", { ascending: false });
 
     if (error) {

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Circle, BarChart3, Target, Clock, TrendingUp } from "lucide-react"
 import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
+import { useAuth } from "@/components/providers/AuthProvider"
 
 interface Task {
   id: string
@@ -24,6 +25,8 @@ interface User {
 }
 
 export default function DashboardPage() {
+  const { user: authUser, loading } = useAuth()
+  
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: "1",
@@ -59,10 +62,14 @@ export default function DashboardPage() {
     },
   ])
 
-  const [user, setUser] = useState<User>({
-    name: "田中太郎",
-    email: "tanaka@example.com",
-  })
+  // Supabaseの認証ユーザー情報から名前とメールを取得
+  const user = authUser ? {
+    name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || "ユーザー",
+    email: authUser.email || ""
+  } : {
+    name: "ゲスト",
+    email: ""
+  }
 
   const completedTasks = tasks.filter((task) => task.completed).length
   const totalTasks = tasks.length
@@ -98,6 +105,30 @@ export default function DashboardPage() {
       default:
         return "なし"
     }
+  }
+
+  // ローディング中の表示
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+
+  // 未認証の場合はログインページにリダイレクト
+  if (!authUser) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">認証が必要です</h2>
+          <p className="text-gray-600 mb-4">ダッシュボードを表示するにはログインしてください。</p>
+          <Button onClick={() => window.location.href = '/'}>
+            ホームに戻る
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
