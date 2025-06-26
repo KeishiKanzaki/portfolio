@@ -27,10 +27,10 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
       isActive: pathname === "/dashboard"
     },
     {
-      href: "/self-analysis-page",
+      href: "/self-analysis",
       icon: User,
       label: "自己分析",
-      isActive: pathname === "/self-analysis-page"
+      isActive: pathname === "/self-analysis"
     }
   ]
 
