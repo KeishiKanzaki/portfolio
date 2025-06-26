@@ -10,6 +10,8 @@ import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
+import { SelfAnalysis, selfAnalysisService } from "@/lib/supabase"
+
 // Simple toast implementation for now
 const useToast = () => {
   const toast = ({ title, description, variant }: { title?: string; description?: string; variant?: "default" | "destructive" }) => {
@@ -21,14 +23,6 @@ const useToast = () => {
 interface User {
   name: string
   email: string
-}
-
-interface SelfAnalysis {
-  id: string
-  title: string
-  content: string
-  createdAt: string
-  updatedAt: string
 }
 
 export default function SelfAnalysisPage() {
@@ -51,13 +45,43 @@ export default function SelfAnalysisPage() {
     email: ""
   }
 
-  // ローカルストレージから分析データを読み込み
+  // デバッグ用：認証状態をログ出力
   useEffect(() => {
-    const savedAnalyses = localStorage.getItem("selfAnalyses")
-    if (savedAnalyses) {
-      setAnalyses(JSON.parse(savedAnalyses))
+    console.log('Auth state:', {
+      loading,
+      authUser: authUser ? {
+        id: authUser.id,
+        email: authUser.email,
+        user_metadata: authUser.user_metadata
+      } : null
+    });
+  }, [loading, authUser]);
+
+  // Supabaseから分析データを読み込み
+  useEffect(() => {
+    const loadAnalyses = async () => {
+      // ローディング中または未認証の場合はスキップ
+      if (loading || !authUser) {
+        return;
+      }
+
+      try {
+        console.log('Loading analyses for user:', authUser.id);
+        const data = await selfAnalysisService.getAll()
+        console.log('Loaded analyses:', data);
+        setAnalyses(data)
+      } catch (error) {
+        console.error('Failed to load analyses:', error)
+        toast({
+          title: "エラー",
+          description: "分析データの読み込みに失敗しました。",
+          variant: "destructive",
+        })
+      }
     }
-  }, [])
+
+    loadAnalyses()
+  }, [authUser?.id, loading]) // authUser.idの変更のみを監視
 
   // 文字数カウント
   const characterCount = content.length
@@ -71,7 +95,7 @@ export default function SelfAnalysisPage() {
   }
 
   // 分析を保存
-  const saveAnalysis = () => {
+  const saveAnalysis = async () => {
     if (!title.trim() || !content.trim()) {
       toast({
         title: "エラー",
@@ -81,39 +105,52 @@ export default function SelfAnalysisPage() {
       return
     }
 
-    const now = new Date().toISOString()
-
-    if (currentAnalysis) {
-      // 既存の分析を更新
-      const updatedAnalysis = {
-        ...currentAnalysis,
-        title,
-        content,
-        updatedAt: now,
-      }
-      const updatedAnalyses = analyses.map((a) => (a.id === currentAnalysis.id ? updatedAnalysis : a))
-      setAnalyses(updatedAnalyses)
-      setCurrentAnalysis(updatedAnalysis)
-      localStorage.setItem("selfAnalyses", JSON.stringify(updatedAnalyses))
-    } else {
-      // 新しい分析を作成
-      const newAnalysis: SelfAnalysis = {
-        id: Date.now().toString(),
-        title,
-        content,
-        createdAt: now,
-        updatedAt: now,
-      }
-      const updatedAnalyses = [...analyses, newAnalysis]
-      setAnalyses(updatedAnalyses)
-      setCurrentAnalysis(newAnalysis)
-      localStorage.setItem("selfAnalyses", JSON.stringify(updatedAnalyses))
+    if (!authUser) {
+      toast({
+        title: "エラー",
+        description: "ログインが必要です。",
+        variant: "destructive",
+      })
+      return
     }
 
-    toast({
-      title: "保存完了",
-      description: "自己分析が保存されました。",
-    })
+    setIsLoading(true)
+
+    try {
+      if (currentAnalysis) {
+        // 既存の分析を更新
+        const updatedAnalysis = await selfAnalysisService.update(currentAnalysis.id, {
+          title,
+          content,
+        })
+        const updatedAnalyses = analyses.map((a) => (a.id === currentAnalysis.id ? updatedAnalysis : a))
+        setAnalyses(updatedAnalyses)
+        setCurrentAnalysis(updatedAnalysis)
+      } else {
+        // 新しい分析を作成
+        const newAnalysis = await selfAnalysisService.create({
+          title,
+          content,
+        }, authUser.id)
+        const updatedAnalyses = [...analyses, newAnalysis]
+        setAnalyses(updatedAnalyses)
+        setCurrentAnalysis(newAnalysis)
+      }
+
+      toast({
+        title: "保存完了",
+        description: "自己分析が保存されました。",
+      })
+    } catch (error) {
+      console.error('Failed to save analysis:', error)
+      toast({
+        title: "エラー",
+        description: "保存に失敗しました。",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // 分析を選択
@@ -125,19 +162,37 @@ export default function SelfAnalysisPage() {
   }
 
   // 分析を削除
-  const deleteAnalysis = (id: string) => {
-    const updatedAnalyses = analyses.filter((a) => a.id !== id)
-    setAnalyses(updatedAnalyses)
-    localStorage.setItem("selfAnalyses", JSON.stringify(updatedAnalyses))
-
-    if (currentAnalysis?.id === id) {
-      createNewAnalysis()
+  const deleteAnalysis = async (id: string) => {
+    if (!authUser) {
+      toast({
+        title: "エラー",
+        description: "ログインが必要です。",
+        variant: "destructive",
+      })
+      return
     }
 
-    toast({
-      title: "削除完了",
-      description: "自己分析が削除されました。",
-    })
+    try {
+      await selfAnalysisService.delete(id)
+      const updatedAnalyses = analyses.filter((a) => a.id !== id)
+      setAnalyses(updatedAnalyses)
+
+      if (currentAnalysis?.id === id) {
+        createNewAnalysis()
+      }
+
+      toast({
+        title: "削除完了",
+        description: "自己分析が削除されました。",
+      })
+    } catch (error) {
+      console.error('Failed to delete analysis:', error)
+      toast({
+        title: "エラー",
+        description: "削除に失敗しました。",
+        variant: "destructive",
+      })
+    }
   }
 
   // AI提案を取得
@@ -299,7 +354,7 @@ export default function SelfAnalysisPage() {
                             </Button>
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
-                            {new Date(analysis.updatedAt).toLocaleDateString("ja-JP")}
+                            {new Date(analysis.updated_at).toLocaleDateString("ja-JP")}
                           </p>
                         </div>
                       ))
@@ -341,9 +396,9 @@ export default function SelfAnalysisPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <Button onClick={saveAnalysis} className="bg-green-600 hover:bg-green-700">
+                      <Button onClick={saveAnalysis} className="bg-green-600 hover:bg-green-700" disabled={isLoading}>
                         <Save className="h-4 w-4 mr-2" />
-                        保存
+                        {isLoading ? "保存中..." : "保存"}
                       </Button>
                       <Button onClick={getSuggestion} variant="outline" disabled={isLoading}>
                         <Lightbulb className="h-4 w-4 mr-2" />
