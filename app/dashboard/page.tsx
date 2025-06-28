@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Circle, BarChart3, Target, Clock, TrendingUp } from "lucide-react"
 import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
+import TodoSummary from "@/components/dashboard/TodoSummary"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
 
@@ -208,10 +209,59 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            {/* タスク一覧 */}
+            {/* カレンダー/ToDo概要 */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <TodoSummary />
+              </div>
+              
+              {/* 右側の追加統計やクイックリンク */}
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">今週の進捗</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">完了タスク</span>
+                        <span className="font-semibold">{completedTasks}/{totalTasks}</span>
+                      </div>
+                      <div className="h-2">
+                        <Progress value={completionRate} />
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-gray-500">
+                        <span>進捗率</span>
+                        <span>{Math.round(completionRate)}%</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">クイックアクション</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <Button variant="outline" className="w-full justify-start" size="sm">
+                        <Target className="w-4 h-4 mr-2" />
+                        新しい目標を設定
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" size="sm">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        進捗レポートを確認
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* 従来のタスク一覧（キャリア関連） */}
             <Card>
               <CardHeader>
-                <CardTitle>アクション項目</CardTitle>
+                <CardTitle>キャリアアクション項目</CardTitle>
                 <CardDescription>キャリア成長のための重要なタスクを管理しましょう</CardDescription>
               </CardHeader>
               <CardContent>
@@ -258,29 +308,50 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* クイックアクション */}
-            <Card>
-              <CardHeader>
-                <CardTitle>クイックアクション</CardTitle>
-                <CardDescription>よく使用する機能へのショートカット</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button variant="outline" className="h-20 flex-col space-y-2">
-                    <BarChart3 className="h-6 w-6" />
-                    <span>進捗レポート</span>
-                  </Button>
-                  <Button variant="outline" className="h-20 flex-col space-y-2">
-                    <Target className="h-6 w-6" />
-                    <span>目標設定</span>
-                  </Button>
-                  <Button variant="outline" className="h-20 flex-col space-y-2">
-                    <TrendingUp className="h-6 w-6" />
-                    <span>成長分析</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* 成長分析とインサイト */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>成長分析</CardTitle>
+                  <CardDescription>あなたのキャリア発展を可視化</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">スキル向上</span>
+                      <span className="text-sm text-gray-500">+15%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">ネットワーク構築</span>
+                      <span className="text-sm text-gray-500">+8%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">目標達成率</span>
+                      <span className="text-sm text-gray-500">{Math.round(completionRate)}%</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>推奨アクション</CardTitle>
+                  <CardDescription>AI による成長提案</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <p className="text-sm font-medium text-blue-900">技術スキル向上</p>
+                      <p className="text-xs text-blue-700 mt-1">新しいフレームワークの学習をお勧めします</p>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <p className="text-sm font-medium text-green-900">ネットワーキング</p>
+                      <p className="text-xs text-green-700 mt-1">業界イベントへの参加を検討してください</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </main>
       </div>
