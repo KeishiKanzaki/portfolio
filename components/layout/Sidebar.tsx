@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Home, User, X, FileText, Calendar } from "lucide-react"
+import { Home, User, X, FileText, Calendar, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SidebarProps {
@@ -37,6 +37,12 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
       icon: FileText,
       label: "ES管理",
       isActive: pathname === "/es-manager"
+    },
+    {
+      href: "/research",
+      icon: BookOpen,
+      label: "研究管理",
+      isActive: pathname === "/research"
     },
     {
       href: "/calendar",
