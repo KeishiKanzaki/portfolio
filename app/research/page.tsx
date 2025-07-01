@@ -20,6 +20,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Header from "@/components/layout/Header"
+import Sidebar from "@/components/layout/Sidebar"
+import { useAuth } from "@/components/providers/AuthProvider"
+import { useSidebar } from "@/components/providers/SidebarProvider"
 
 interface Research {
   id: string
@@ -32,6 +36,9 @@ interface Research {
 }
 
 export default function ResearchManager() {
+  const { user: authUser, loading } = useAuth()
+  const { sidebarOpen, setSidebarOpen, toggleSidebar } = useSidebar()
+  
   const [researches, setResearches] = useState<Research[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -41,6 +48,15 @@ export default function ResearchManager() {
     year: new Date().getFullYear().toString(),
     pdfFile: null as File | null,
   })
+
+  // Supabaseの認証ユーザー情報から名前とメールを取得
+  const user = authUser ? {
+    name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || "ユーザー",
+    email: authUser.email || ""
+  } : {
+    name: "ゲスト",
+    email: ""
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -97,9 +113,48 @@ export default function ResearchManager() {
     return variants[type] as "default" | "secondary" | "destructive" | "outline"
   }
 
+  // ローディング中の表示
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+
+  // 未認証の場合はログインページにリダイレクト
+  if (!authUser) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">認証が必要です</h2>
+          <p className="text-gray-600 mb-4">研究管理システムを使用するにはログインしてください。</p>
+          <Button onClick={() => window.location.href = '/'}>
+            ホームに戻る
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="relative flex h-screen bg-gray-100/40">
+      <Sidebar 
+        user={user} 
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${
+        sidebarOpen ? 'lg:ml-64' : 'ml-0'
+      }`}>
+        <Header 
+          user={user} 
+          notificationCount={0}
+          onMenuClick={toggleSidebar}
+        />
+        <main className="flex-1 overflow-auto">
+          <div className="min-h-screen bg-background">
+            <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">研究管理システム</h1>
@@ -281,6 +336,9 @@ export default function ResearchManager() {
             ))}
           </div>
         )}
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   )
