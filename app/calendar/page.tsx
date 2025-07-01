@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar } from "@/components/ui/calendar"
+import { CustomCalendar } from "@/components/ui/custom-calendar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -27,7 +27,7 @@ import Sidebar from "@/components/layout/Sidebar"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
 
-// Simple toast implementation for now
+//トースト用のカスタムフック
 const useToast = () => {
   const toast = ({ title, description, variant }: { title?: string; description?: string; variant?: "default" | "destructive" }) => {
     alert(`${title}: ${description}`)
@@ -359,20 +359,11 @@ export default function TodoCalendarApp() {
                   <CardDescription>日付を選択してタスクを表示</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Calendar
-                    mode="single"
+                  <CustomCalendar
                     selected={selectedDate}
                     onSelect={setSelectedDate}
-                    className="rounded-md border"
                     modifiers={{
-                      hasTask: (date) => getTasksForDate(date).length > 0,
-                    }}
-                    modifiersStyles={{
-                      hasTask: {
-                        backgroundColor: "hsl(var(--primary))",
-                        color: "white",
-                        fontWeight: "bold",
-                      },
+                      hasTask: (date: Date) => getTasksForDate(date).length > 0,
                     }}
                   />
 
