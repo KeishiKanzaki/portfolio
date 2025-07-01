@@ -26,6 +26,7 @@ import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
+import { Task, taskService } from "@/lib/supabase"
 
 //トースト用のカスタムフック
 const useToast = () => {
@@ -33,16 +34,6 @@ const useToast = () => {
     alert(`${title}: ${description}`)
   }
   return { toast }
-}
-
-interface Task {
-  id: string
-  title: string
-  description: string
-  dueDate: Date
-  completed: boolean
-  priority: "low" | "medium" | "high"
-  createdAt: Date
 }
 
 interface User {
@@ -57,6 +48,7 @@ export default function TodoCalendarApp() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const [newTask, setNewTask] = useState<{
     title: string
     description: string
@@ -79,81 +71,159 @@ export default function TodoCalendarApp() {
     email: ""
   }
 
-  // Load tasks from localStorage on component mount
+  // Load tasks from Supabase on component mount
   useEffect(() => {
-    const savedTasks = localStorage.getItem("calendar-tasks")
-    if (savedTasks) {
-      const parsedTasks = JSON.parse(savedTasks).map((task: any) => ({
-        ...task,
-        dueDate: new Date(task.dueDate),
-        createdAt: new Date(task.createdAt),
-      }))
-      setTasks(parsedTasks)
+    if (authUser) {
+      loadTasks()
     }
-  }, [])
+  }, [authUser])
 
-  // Save tasks to localStorage whenever tasks change
-  useEffect(() => {
-    localStorage.setItem("calendar-tasks", JSON.stringify(tasks))
-  }, [tasks])
-
-  const addTask = () => {
-    if (newTask.title.trim()) {
-      const task: Task = {
-        id: Date.now().toString(),
-        title: newTask.title,
-        description: newTask.description,
-        dueDate: newTask.dueDate,
-        completed: false,
-        priority: newTask.priority,
-        createdAt: new Date(),
-      }
-      setTasks([...tasks, task])
-      setNewTask({
-        title: "",
-        description: "",
-        dueDate: new Date(),
-        priority: "medium",
-      })
-      setIsDialogOpen(false)
-      
-      toast({
-        title: "タスク作成完了",
-        description: "新しいタスクが追加されました。",
-      })
-    }
-  }
-
-  const updateTask = () => {
-    if (editingTask && newTask.title.trim()) {
-      setTasks(tasks.map((task) => (task.id === editingTask.id ? { ...task, ...newTask } : task)))
-      setEditingTask(null)
-      setNewTask({
-        title: "",
-        description: "",
-        dueDate: new Date(),
-        priority: "medium",
-      })
-      setIsDialogOpen(false)
-      
-      toast({
-        title: "タスク更新完了",
-        description: "タスクが更新されました。",
-      })
-    }
-  }
-
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id))
+  const loadTasks = async () => {
+    if (!authUser) return
     
-    toast({
-      title: "タスク削除完了",
-      description: "タスクが削除されました。",
-    })
+    try {
+      setIsLoading(true)
+      const tasksData = await taskService.getAll(authUser.id)
+      setTasks(tasksData)
+    } catch (error) {
+      console.error('Error loading tasks:', error)
+      toast({
+        title: "エラー",
+        description: "タスクの読み込みに失敗しました。",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const toggleTask = (id: string) => {
-    setTasks(tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task)))
+  const addTask = async () => {
+    if (!authUser) {
+      toast({
+        title: "エラー",
+        description: "ログインが必要です。",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (newTask.title.trim()) {
+      try {
+        setIsLoading(true)
+        const taskData = await taskService.create({
+          title: newTask.title,
+          description: newTask.description,
+          due_date: newTask.dueDate.toISOString(),
+          priority: newTask.priority,
+        }, authUser.id)
+        
+        setTasks([...tasks, taskData])
+        setNewTask({
+          title: "",
+          description: "",
+          dueDate: new Date(),
+          priority: "medium",
+        })
+        setIsDialogOpen(false)
+        
+        toast({
+          title: "タスク作成完了",
+          description: "新しいタスクが追加されました。",
+        })
+      } catch (error) {
+        console.error('Error creating task:', error)
+        toast({
+          title: "エラー",
+          description: "タスクの作成に失敗しました。",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+  }
+
+  const updateTask = async () => {
+    if (!authUser || !editingTask) return
+
+    if (newTask.title.trim()) {
+      try {
+        setIsLoading(true)
+        const updatedTask = await taskService.update(editingTask.id, {
+          title: newTask.title,
+          description: newTask.description,
+          due_date: newTask.dueDate.toISOString(),
+          priority: newTask.priority,
+        })
+        
+        setTasks(tasks.map((task) => (task.id === editingTask.id ? updatedTask : task)))
+        setEditingTask(null)
+        setNewTask({
+          title: "",
+          description: "",
+          dueDate: new Date(),
+          priority: "medium",
+        })
+        setIsDialogOpen(false)
+        
+        toast({
+          title: "タスク更新完了",
+          description: "タスクが更新されました。",
+        })
+      } catch (error) {
+        console.error('Error updating task:', error)
+        toast({
+          title: "エラー",
+          description: "タスクの更新に失敗しました。",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+  }
+
+  const deleteTask = async (id: string) => {
+    if (!authUser) return
+
+    try {
+      setIsLoading(true)
+      await taskService.delete(id)
+      setTasks(tasks.filter((task) => task.id !== id))
+      
+      toast({
+        title: "タスク削除完了",
+        description: "タスクが削除されました。",
+      })
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      toast({
+        title: "エラー",
+        description: "タスクの削除に失敗しました。",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const toggleTask = async (id: string) => {
+    if (!authUser) return
+
+    const task = tasks.find(t => t.id === id)
+    if (!task) return
+
+    try {
+      const updatedTask = await taskService.toggleComplete(id, !task.completed)
+      setTasks(tasks.map((task) => (task.id === id ? updatedTask : task)))
+    } catch (error) {
+      console.error('Error toggling task:', error)
+      toast({
+        title: "エラー",
+        description: "タスクの更新に失敗しました。",
+        variant: "destructive"
+      })
+    }
   }
 
   const openEditDialog = (task: Task) => {
@@ -161,7 +231,7 @@ export default function TodoCalendarApp() {
     setNewTask({
       title: task.title,
       description: task.description,
-      dueDate: task.dueDate,
+      dueDate: new Date(task.due_date),
       priority: task.priority,
     })
     setIsDialogOpen(true)
@@ -178,23 +248,23 @@ export default function TodoCalendarApp() {
   }
 
   const getTasksForDate = (date: Date) => {
-    return tasks.filter((task) => format(task.dueDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd"))
+    return tasks.filter((task) => format(new Date(task.due_date), "yyyy-MM-dd") === format(date, "yyyy-MM-dd"))
   }
 
   const getTodayTasks = () => {
-    return tasks.filter((task) => isToday(task.dueDate))
+    return tasks.filter((task) => isToday(new Date(task.due_date)))
   }
 
   const getUpcomingTasks = () => {
     return tasks
       .filter(
-        (task) => !task.completed && (isToday(task.dueDate) || isTomorrow(task.dueDate) || isThisWeek(task.dueDate)),
+        (task) => !task.completed && (isToday(new Date(task.due_date)) || isTomorrow(new Date(task.due_date)) || isThisWeek(new Date(task.due_date))),
       )
-      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
   }
 
   const getOverdueTasks = () => {
-    return tasks.filter((task) => !task.completed && isPast(task.dueDate) && !isToday(task.dueDate))
+    return tasks.filter((task) => !task.completed && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date)))
   }
 
   const getPriorityColor = (priority: string) => {
@@ -210,8 +280,9 @@ export default function TodoCalendarApp() {
     }
   }
 
-  const getTaskUrgency = (dueDate: Date) => {
-    const days = differenceInDays(dueDate, new Date())
+  const getTaskUrgency = (dueDate: string) => {
+    const taskDate = new Date(dueDate)
+    const days = differenceInDays(taskDate, new Date())
     if (days < 0) return "overdue"
     if (days === 0) return "today"
     if (days === 1) return "tomorrow"
@@ -220,7 +291,7 @@ export default function TodoCalendarApp() {
   }
 
   const TaskCard = ({ task }: { task: Task }) => {
-    const urgency = getTaskUrgency(task.dueDate)
+    const urgency = getTaskUrgency(task.due_date)
 
     return (
       <Card className={`mb-3 ${task.completed ? "opacity-60" : ""} ${urgency === "overdue" ? "border-red-300" : ""}`}>
@@ -236,7 +307,7 @@ export default function TodoCalendarApp() {
                 <div className="flex items-center space-x-2 mt-2">
                   <Badge variant="outline" className="text-xs">
                     <CalendarDays className="w-3 h-3 mr-1" />
-                    {format(task.dueDate, "MMM dd, yyyy")}
+                    {format(new Date(task.due_date), "MMM dd, yyyy")}
                   </Badge>
                   <Badge className={`text-xs ${getPriorityColor(task.priority)} text-white`}>{task.priority}</Badge>
                   {urgency === "overdue" && (
@@ -273,6 +344,18 @@ export default function TodoCalendarApp() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+
+  // 認証が必要
+  if (!authUser) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">ログインが必要です</h2>
+          <p className="text-gray-600">カレンダー機能を使用するにはログインしてください。</p>
+        </div>
       </div>
     )
   }
@@ -324,7 +407,7 @@ export default function TodoCalendarApp() {
                           .map((task) => (
                             <div key={task.id} className="text-sm">
                               <span className="font-medium">{task.title}</span>
-                              <span className="text-muted-foreground ml-2">(期限 {format(task.dueDate, "MM月dd日")})</span>
+                              <span className="text-muted-foreground ml-2">(期限 {format(new Date(task.due_date), "MM月dd日")})</span>
                             </div>
                           ))}
                       </div>
@@ -463,8 +546,8 @@ export default function TodoCalendarApp() {
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button onClick={editingTask ? updateTask : addTask}>
-                          {editingTask ? "タスク更新" : "タスク追加"}
+                        <Button onClick={editingTask ? updateTask : addTask} disabled={isLoading}>
+                          {isLoading ? "処理中..." : editingTask ? "タスク更新" : "タスク追加"}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -505,7 +588,7 @@ export default function TodoCalendarApp() {
                         <p className="text-muted-foreground text-center py-8">まだタスクがありません。最初のタスクを作成しましょう！</p>
                       ) : (
                         tasks
-                          .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+                          .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
                           .map((task) => <TaskCard key={task.id} task={task} />)
                       )}
                     </div>
@@ -518,7 +601,7 @@ export default function TodoCalendarApp() {
                       ) : (
                         tasks
                           .filter((task) => task.completed)
-                          .sort((a, b) => b.dueDate.getTime() - a.dueDate.getTime())
+                          .sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime())
                           .map((task) => <TaskCard key={task.id} task={task} />)
                       )}
                     </div>

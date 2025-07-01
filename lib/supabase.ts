@@ -116,3 +116,137 @@ export const selfAnalysisService = {
     }
   }
 };
+
+export interface Task {
+  id: string
+  user_id: string
+  title: string
+  description: string
+  due_date: string
+  completed: boolean
+  priority: "low" | "medium" | "high"
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateTaskData {
+  title: string
+  description: string
+  due_date: string
+  priority: "low" | "medium" | "high"
+}
+
+export interface UpdateTaskData {
+  title?: string
+  description?: string
+  due_date?: string
+  priority?: "low" | "medium" | "high"
+  completed?: boolean
+}
+
+// タスクデータのCRUD操作関数
+export const taskService = {
+  // ユーザーのすべてのタスクを取得
+  async getAll(userId: string): Promise<Task[]> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching tasks:', error);
+      throw error;
+    }
+    
+    return data || [];
+  },
+
+  // 特定のタスクを取得
+  async getById(id: string): Promise<Task | null> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // データが見つからない場合
+      }
+      console.error('Error fetching task:', error);
+      throw error;
+    }
+    
+    return data;
+  },
+
+  // 新しいタスクを作成
+  async create(data: CreateTaskData, userId: string): Promise<Task> {
+    const { data: result, error } = await supabase
+      .from('tasks')
+      .insert([{
+        title: data.title,
+        description: data.description,
+        due_date: data.due_date,
+        priority: data.priority,
+        user_id: userId
+      }])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating task:', error);
+      throw error;
+    }
+    
+    return result;
+  },
+
+  // タスクを更新
+  async update(id: string, data: UpdateTaskData): Promise<Task> {
+    const { data: result, error } = await supabase
+      .from('tasks')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating task:', error);
+      throw error;
+    }
+    
+    return result;
+  },
+
+  // タスクを削除
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+    }
+  },
+
+  // タスクの完了状態を切り替え
+  async toggleComplete(id: string, completed: boolean): Promise<Task> {
+    const { data: result, error } = await supabase
+      .from('tasks')
+      .update({ completed })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error toggling task completion:', error);
+      throw error;
+    }
+    
+    return result;
+  }
+};
