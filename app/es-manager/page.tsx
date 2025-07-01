@@ -22,6 +22,7 @@ import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
+import { useLoginModal } from "@/hooks/useLoginModal"
 
 interface ESEntry {
   id: string
@@ -38,6 +39,7 @@ interface ESEntry {
 export default function ESManagerPage() {
   const { user: authUser, loading } = useAuth()
   const { sidebarOpen, setSidebarOpen, toggleSidebar } = useSidebar()
+  const loginModal = useLoginModal()
   
   const [entries, setEntries] = useState<ESEntry[]>([])
   const [selectedEntry, setSelectedEntry] = useState<ESEntry | null>(null)
@@ -233,10 +235,15 @@ export default function ESManagerPage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">認証が必要です</h2>
-          <p className="text-gray-600 mb-4">ES管理システムを使用するにはログインしてください。</p>
-          <Button onClick={() => window.location.href = '/'}>
-            ホームに戻る
-          </Button>
+          <p className="text-gray-600 mb-6">ES管理システムを使用するにはログインしてください。</p>
+          <div className="flex gap-4 justify-center">
+            <Button onClick={() => window.location.href = '/'} variant="outline">
+              ホームに戻る
+            </Button>
+            <Button onClick={loginModal.onOpen}>
+              ログイン
+            </Button>
+          </div>
         </div>
       </div>
     )
