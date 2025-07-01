@@ -10,6 +10,7 @@ import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
+import { useLoginModal } from "@/hooks/useLoginModal"
 import { SelfAnalysis, selfAnalysisService } from "@/lib/supabase"
 
 // Simple toast implementation for now
@@ -28,6 +29,7 @@ interface User {
 export default function SelfAnalysisPage() {
   const { user: authUser, loading } = useAuth()
   const { sidebarOpen, setSidebarOpen, toggleSidebar } = useSidebar()
+  const loginModal = useLoginModal()
   const [analyses, setAnalyses] = useState<SelfAnalysis[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<SelfAnalysis | null>(null)
   const [content, setContent] = useState("")
@@ -290,10 +292,20 @@ export default function SelfAnalysisPage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">認証が必要です</h2>
-          <p className="text-gray-600 mb-4">自己分析ページを表示するにはログインしてください。</p>
-          <Button onClick={() => window.location.href = '/'}>
-            ホームに戻る
-          </Button>
+          <p className="text-gray-600 mb-6">自己分析ページを表示するにはログインしてください。</p>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/'}
+            >
+              ホームに戻る
+            </Button>
+            <Button 
+              onClick={() => loginModal.onOpen()}
+            >
+              ログイン
+            </Button>
+          </div>
         </div>
       </div>
     )

@@ -123,6 +123,7 @@ export interface Task {
   title: string
   description: string
   due_date: string
+  due_time: string | null
   completed: boolean
   priority: "low" | "medium" | "high"
   created_at: string
@@ -133,6 +134,7 @@ export interface CreateTaskData {
   title: string
   description: string
   due_date: string
+  due_time: string
   priority: "low" | "medium" | "high"
 }
 
@@ -140,6 +142,7 @@ export interface UpdateTaskData {
   title?: string
   description?: string
   due_date?: string
+  due_time?: string
   priority?: "low" | "medium" | "high"
   completed?: boolean
 }
@@ -189,6 +192,7 @@ export const taskService = {
         title: data.title,
         description: data.description,
         due_date: data.due_date,
+        due_time: data.due_time,
         priority: data.priority,
         user_id: userId
       }])

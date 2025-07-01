@@ -26,6 +26,7 @@ import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
+import { useLoginModal } from "@/hooks/useLoginModal"
 import { Task, taskService } from "@/lib/supabase"
 
 //トースト用のカスタムフック
@@ -44,6 +45,7 @@ interface User {
 export default function TodoCalendarApp() {
   const { user: authUser, loading } = useAuth()
   const { sidebarOpen, setSidebarOpen, toggleSidebar } = useSidebar()
+  const loginModal = useLoginModal()
   const [tasks, setTasks] = useState<Task[]>([])
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -53,11 +55,13 @@ export default function TodoCalendarApp() {
     title: string
     description: string
     dueDate: Date
+    dueTime: string
     priority: "low" | "medium" | "high"
   }>({
     title: "",
     description: "",
     dueDate: new Date(),
+    dueTime: "23:59",
     priority: "medium",
   })
   const { toast } = useToast()
@@ -113,7 +117,8 @@ export default function TodoCalendarApp() {
         const taskData = await taskService.create({
           title: newTask.title,
           description: newTask.description,
-          due_date: newTask.dueDate.toISOString(),
+          due_date: newTask.dueDate.toISOString().split('T')[0],
+          due_time: newTask.dueTime + ":00",
           priority: newTask.priority,
         }, authUser.id)
         
@@ -122,6 +127,7 @@ export default function TodoCalendarApp() {
           title: "",
           description: "",
           dueDate: new Date(),
+          dueTime: "23:59",
           priority: "medium",
         })
         setIsDialogOpen(false)
@@ -152,7 +158,8 @@ export default function TodoCalendarApp() {
         const updatedTask = await taskService.update(editingTask.id, {
           title: newTask.title,
           description: newTask.description,
-          due_date: newTask.dueDate.toISOString(),
+          due_date: newTask.dueDate.toISOString().split('T')[0],
+          due_time: newTask.dueTime + ":00",
           priority: newTask.priority,
         })
         
@@ -162,6 +169,7 @@ export default function TodoCalendarApp() {
           title: "",
           description: "",
           dueDate: new Date(),
+          dueTime: "23:59",
           priority: "medium",
         })
         setIsDialogOpen(false)
@@ -232,6 +240,7 @@ export default function TodoCalendarApp() {
       title: task.title,
       description: task.description,
       dueDate: new Date(task.due_date),
+      dueTime: task.due_time ? task.due_time.substring(0, 5) : "23:59",
       priority: task.priority,
     })
     setIsDialogOpen(true)
@@ -243,6 +252,7 @@ export default function TodoCalendarApp() {
       title: "",
       description: "",
       dueDate: new Date(),
+      dueTime: "23:59",
       priority: "medium",
     })
   }
@@ -280,18 +290,31 @@ export default function TodoCalendarApp() {
     }
   }
 
-  const getTaskUrgency = (dueDate: string) => {
+  const getTaskUrgency = (dueDate: string, dueTime?: string | null) => {
     const taskDate = new Date(dueDate)
-    const days = differenceInDays(taskDate, new Date())
-    if (days < 0) return "overdue"
-    if (days === 0) return "today"
-    if (days === 1) return "tomorrow"
-    if (days <= 7) return "this-week"
+    if (dueTime) {
+      // 時間が指定されている場合は、日付と時間を組み合わせる
+      const [hours, minutes] = dueTime.split(':').map(Number)
+      taskDate.setHours(hours, minutes, 0, 0)
+    } else {
+      // 時間が指定されていない場合は23:59とする
+      taskDate.setHours(23, 59, 0, 0)
+    }
+    
+    const now = new Date()
+    const diffMs = taskDate.getTime() - now.getTime()
+    const diffHours = diffMs / (1000 * 60 * 60)
+    
+    if (diffMs < 0) return "overdue"
+    if (diffHours < 1) return "urgent" // 1時間以内
+    if (diffHours < 24) return "today" // 24時間以内
+    if (diffHours < 48) return "tomorrow" // 48時間以内
+    if (diffHours < 168) return "this-week" // 1週間以内
     return "future"
   }
 
   const TaskCard = ({ task }: { task: Task }) => {
-    const urgency = getTaskUrgency(task.due_date)
+    const urgency = getTaskUrgency(task.due_date, task.due_time)
 
     return (
       <Card className={`mb-3 ${task.completed ? "opacity-60" : ""} ${urgency === "overdue" ? "border-red-300" : ""}`}>
@@ -308,6 +331,9 @@ export default function TodoCalendarApp() {
                   <Badge variant="outline" className="text-xs">
                     <CalendarDays className="w-3 h-3 mr-1" />
                     {format(new Date(task.due_date), "MMM dd, yyyy")}
+                    {task.due_time && (
+                      <span className="ml-1">{task.due_time.substring(0, 5)}</span>
+                    )}
                   </Badge>
                   <Badge className={`text-xs ${getPriorityColor(task.priority)} text-white`}>{task.priority}</Badge>
                   {urgency === "overdue" && (
@@ -316,10 +342,16 @@ export default function TodoCalendarApp() {
                       期限切れ
                     </Badge>
                   )}
+                  {urgency === "urgent" && (
+                    <Badge className="text-xs bg-red-500 text-white">
+                      <Clock className="w-3 h-3 mr-1" />
+                      緊急
+                    </Badge>
+                  )}
                   {urgency === "today" && (
                     <Badge className="text-xs bg-blue-500 text-white">
                       <Clock className="w-3 h-3 mr-1" />
-                      今日が期限
+                      今日中
                     </Badge>
                   )}
                 </div>
@@ -354,7 +386,20 @@ export default function TodoCalendarApp() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">ログインが必要です</h2>
-          <p className="text-gray-600">カレンダー機能を使用するにはログインしてください。</p>
+          <p className="text-gray-600 mb-6">カレンダー機能を使用するにはログインしてください。</p>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/'}
+            >
+              ホームに戻る
+            </Button>
+            <Button 
+              onClick={() => loginModal.onOpen()}
+            >
+              ログイン
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -407,7 +452,10 @@ export default function TodoCalendarApp() {
                           .map((task) => (
                             <div key={task.id} className="text-sm">
                               <span className="font-medium">{task.title}</span>
-                              <span className="text-muted-foreground ml-2">(期限 {format(new Date(task.due_date), "MM月dd日")})</span>
+                              <span className="text-muted-foreground ml-2">
+                                (期限 {format(new Date(task.due_date), "MM月dd日")}
+                                {task.due_time && ` ${task.due_time.substring(0, 5)}`})
+                              </span>
                             </div>
                           ))}
                       </div>
@@ -519,14 +567,25 @@ export default function TodoCalendarApp() {
                             placeholder="タスクの説明を入力（任意）"
                           />
                         </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="dueDate">期限</Label>
-                          <Input
-                            id="dueDate"
-                            type="date"
-                            value={format(newTask.dueDate, "yyyy-MM-dd")}
-                            onChange={(e) => setNewTask({ ...newTask, dueDate: new Date(e.target.value) })}
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="dueDate">期限日</Label>
+                            <Input
+                              id="dueDate"
+                              type="date"
+                              value={format(newTask.dueDate, "yyyy-MM-dd")}
+                              onChange={(e) => setNewTask({ ...newTask, dueDate: new Date(e.target.value) })}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="dueTime">期限時間</Label>
+                            <Input
+                              id="dueTime"
+                              type="time"
+                              value={newTask.dueTime}
+                              onChange={(e) => setNewTask({ ...newTask, dueTime: e.target.value })}
+                            />
+                          </div>
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="priority">優先度</Label>
