@@ -8,12 +8,12 @@ export function StartFreeButton({ size = "lg", className = "" }: { size?: "lg" |
   return (
     <Button
       size={size}
-      className={`bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-lg px-8 py-3 ${className}`}
+      className={`bg-white text-black hover:bg-gray-100 font-medium text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 rounded-full transition-all duration-300 ${className}`}
       onClick={onOpen}
       type="button"
     >
       無料で始める
-      <ArrowRight className="ml-2 w-5 h-5" />
+      <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
     </Button>
   );
 }
