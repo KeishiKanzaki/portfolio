@@ -1,7 +1,7 @@
 //クライアントコンポーネントを使用。
 "use client";
 
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,10 +23,79 @@ import {
   Calendar,
   BarChart3,
   Brain,
+  Orbit,
+  Layers,
+  Grid,
+  MousePointer,
+  Waves
 } from "lucide-react";
 import { StartFreeButton } from "@/components/StartFreeButton";
 import { useLoginModal } from "@/hooks/useLoginModal";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+
+// アニメーション用のカスタムコンポーネント
+const FloatingParticle = ({ particle }: { particle: any }) => {
+  return (
+    <motion.div
+      className="absolute w-2 h-2 bg-gray-300 rounded-full"
+      style={{
+        left: `${particle.x}%`,
+        top: `${particle.y}%`,
+      }}
+      animate={{
+        y: [0, -20, 0],
+        opacity: [0.3, 0.8, 0.3],
+        scale: [1, 1.2, 1],
+      }}
+      transition={{
+        duration: particle.duration,
+        delay: particle.delay,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
+    />
+  );
+};
+
+const AnimatedBackground = ({ children }: { children: React.ReactNode }) => {
+  const { scrollYProgress } = useScroll();
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, -200]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, -400]);
+  
+  return (
+    <div className="relative overflow-hidden">
+      <motion.div 
+        className="absolute inset-0 opacity-20"
+        style={{ y: y1 }}
+      >
+        <div className="w-full h-full bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50" />
+      </motion.div>
+      <motion.div 
+        className="absolute inset-0 opacity-10"
+        style={{ y: y2 }}
+      >
+        <div className="w-full h-full bg-gradient-to-tl from-yellow-50 via-green-50 to-cyan-50" />
+      </motion.div>
+      {children}
+    </div>
+  );
+};
+
+const SectionReveal = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+      transition={{ duration: 0.8, delay, ease: "easeOut" }}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 export default function HomePage() {
   const { onOpen: onOpenLogin } = useLoginModal(); //ログインモーダルの開閉制御
@@ -54,6 +123,14 @@ export default function HomePage() {
 
   // コミュニティセクション用のパーティクル状態管理
   const [communityParticles, setCommunityParticles] = useState<Array<{
+    id: number,
+    x: number,
+    y: number,
+    duration: number,
+    delay: number
+  }>>([]);
+
+  const [careerParticles, setCareerParticles] = useState<Array<{
     id: number,
     x: number,
     y: number,
@@ -95,6 +172,16 @@ export default function HomePage() {
       delay: Math.random() * 2,
     }));
     setCommunityParticles(communityData);
+
+    // キャリアセクション用パーティクル
+    const careerData = Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      duration: 3 + Math.random() * 2,
+      delay: Math.random() * 2,
+    }));
+    setCareerParticles(careerData);
   }, []);
 
   const backgroundVariants = {
@@ -212,336 +299,625 @@ export default function HomePage() {
         </motion.header>
 
         {/* Hero Section */}
-        <section className="py-24 sm:py-32 md:py-40 px-4 sm:px-6 lg:px-8 bg-gray-50 relative overflow-hidden">
-          
-          <div className="container mx-auto text-center max-w-6xl relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="mb-16"
-            >
-              <motion.h1 
-                className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 leading-tight tracking-tight text-gray-900"
+        <AnimatedBackground>
+          <section className="py-24 sm:py-32 md:py-40 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
+            {/* Background Elements */}
+            <div className="absolute inset-0">
+              {/* Gradient Orbs */}
+              <motion.div
+                className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.5, 0.3],
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div
+                className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-pink-200/30 to-yellow-200/30 rounded-full blur-3xl"
+                animate={{
+                  scale: [1.2, 1, 1.2],
+                  opacity: [0.2, 0.4, 0.2],
+                }}
+                transition={{
+                  duration: 10,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              
+              {/* Floating Particles */}
+              {isClient && particles.map((particle) => (
+                <FloatingParticle key={particle.id} particle={particle} />
+              ))}
+              
+              {/* Grid Pattern */}
+              <div className="absolute inset-0 opacity-[0.02]">
+                <div className="h-full w-full" style={{
+                  backgroundImage: `radial-gradient(circle at 1px 1px, rgb(0,0,0) 1px, transparent 0)`,
+                  backgroundSize: '40px 40px'
+                }} />
+              </div>
+            </div>
+            
+            <div className="container mx-auto text-center max-w-6xl relative z-10">
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, delay: 0.2 }}
+                className="mb-16"
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 1.2, delay: 0.4 }}
+                  className="mb-8"
+                >
+                  <motion.h1 
+                    className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 leading-tight tracking-tight"
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, delay: 0.6 }}
+                  >
+                    <motion.span 
+                      className="bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 bg-clip-text text-transparent"
+                      animate={{
+                        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                      }}
+                      transition={{
+                        duration: 5,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                      style={{
+                        backgroundSize: "200% 200%",
+                      }}
+                    >
+                      あなたのキャリアを
+                    </motion.span>
+                    <br />
+                    <motion.span 
+                      className="text-gray-600 relative"
+                      initial={{ opacity: 0, x: -50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 1, delay: 0.8 }}
+                    >
+                      科学する
+                      <motion.div
+                        className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 1, delay: 1.2 }}
+                      />
+                    </motion.span>
+                  </motion.h1>
+                </motion.div>
+              </motion.div>
+              
+              <motion.div 
+                className="mb-16"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
+                transition={{ duration: 0.8, delay: 1.4 }}
               >
-                あなたのキャリアを
-                <br />
-                <span className="text-gray-600">
-                  科学する
-                </span>
-              </motion.h1>
-            </motion.div>
-            
-            <motion.div 
-              className="mb-16"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-            >
-              <p className="text-xl sm:text-2xl md:text-3xl text-gray-600 mb-8 leading-relaxed font-light">
-                AI分析と科学的アプローチで、
-                <br />
-                あなたの「最適なキャリア」を発見しよう。
-              </p>
-              
-              {/* 機能ハイライト */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-8">
-                <motion.div 
-                  className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg border border-gray-200"
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
+                <motion.p 
+                  className="text-xl sm:text-2xl md:text-3xl text-gray-600 mb-8 leading-relaxed font-light"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 1, delay: 1.6 }}
                 >
-                  <User className="w-8 h-8 text-gray-700 mb-2" />
-                  <span className="text-sm font-medium text-gray-900">自己分析</span>
-                  <span className="text-xs text-gray-500">深層心理分析</span>
-                </motion.div>
+                  AI分析と科学的アプローチで、
+                  <br />
+                  あなたの「最適なキャリア」を発見しよう。
+                </motion.p>
                 
-                <motion.div 
-                  className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg border border-gray-200"
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
-                >
-                  <FileText className="w-8 h-8 text-gray-700 mb-2" />
-                  <span className="text-sm font-medium text-gray-900">ES管理</span>
-                  <span className="text-xs text-gray-500">成功率最適化</span>
-                </motion.div>
-                
-                <motion.div 
-                  className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg border border-gray-200"
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.0 }}
-                >
-                  <BarChart3 className="w-8 h-8 text-gray-700 mb-2" />
-                  <span className="text-sm font-medium text-gray-900">AI分析</span>
-                  <span className="text-xs text-gray-500">行動パターン解析</span>
-                </motion.div>
-                
-                <motion.div 
-                  className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg border border-gray-200"
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.1 }}
-                >
-                  <Target className="w-8 h-8 text-gray-700 mb-2" />
-                  <span className="text-sm font-medium text-gray-900">目標設定</span>
-                  <span className="text-xs text-gray-500">スマート追跡</span>
-                </motion.div>
-              </div>
-            </motion.div>
-            
-            <motion.div 
-              className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 1.2 }}
-            >
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  size="lg" 
-                  className="text-lg px-12 py-4 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-medium shadow-lg transition-all duration-300"
-                  asChild
-                >
-                  <Link href="/dashboard">
-                    無料で始める
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Link>
-                </Button>
+                {/* 機能ハイライト */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-8">
+                  {[
+                    { icon: User, title: "自己分析", subtitle: "深層心理分析", delay: 1.8 },
+                    { icon: FileText, title: "ES管理", subtitle: "成功率最適化", delay: 1.9 },
+                    { icon: BarChart3, title: "AI分析", subtitle: "行動パターン解析", delay: 2.0 },
+                    { icon: Target, title: "目標設定", subtitle: "スマート追跡", delay: 2.1 }
+                  ].map((item, index) => (
+                    <motion.div 
+                      key={index}
+                      className="group flex flex-col items-center p-6 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 hover:shadow-xl hover:scale-105"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: item.delay, duration: 0.6 }}
+                      whileHover={{ 
+                        y: -8,
+                        transition: { duration: 0.3 }
+                      }}
+                    >
+                      <motion.div
+                        className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center mb-3 group-hover:from-blue-100 group-hover:to-purple-100"
+                        whileHover={{ rotate: 5 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <item.icon className="w-6 h-6 text-gray-700 group-hover:text-blue-600" />
+                      </motion.div>
+                      <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {item.title}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {item.subtitle}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
               
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <motion.div 
+                className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 2.2 }}
               >
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="text-lg px-12 py-4 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 rounded-lg font-medium transition-all duration-300"
-                  asChild
+                <motion.div
+                  whileHover={{ 
+                    scale: 1.05,
+                    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  className="group"
                 >
-                  <Link href="/demo">
-                    デモを見る
-                  </Link>
-                </Button>
+                  <Button 
+                    size="lg" 
+                    className="text-lg px-12 py-4 bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 text-white rounded-lg font-medium shadow-lg transition-all duration-300 relative overflow-hidden"
+                    asChild
+                  >
+                    <Link href="/dashboard" className="flex items-center">
+                      <motion.span
+                        initial={{ x: 0 }}
+                        whileHover={{ x: -5 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        無料で始める
+                      </motion.span>
+                      <motion.div
+                        initial={{ x: 0 }}
+                        whileHover={{ x: 5 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <ArrowRight className="w-5 h-5 ml-2" />
+                      </motion.div>
+                    </Link>
+                  </Button>
+                </motion.div>
+                
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="text-lg px-12 py-4 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 rounded-lg font-medium transition-all duration-300 backdrop-blur-sm"
+                    asChild
+                  >
+                    <Link href="/demo">
+                      デモを見る
+                    </Link>
+                  </Button>
+                </motion.div>
               </motion.div>
-            </motion.div>
 
-            {/* 統計表示 */}
-            <motion.div 
-              className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 1.4 }}
-            >
-              <div className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-gray-900">95%</div>
-                <div className="text-sm text-gray-600">ユーザー満足度</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-gray-900">2.5x</div>
-                <div className="text-sm text-gray-600">内定獲得率向上</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-gray-900">10k+</div>
-                <div className="text-sm text-gray-600">分析データポイント</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-gray-900">30日</div>
-                <div className="text-sm text-gray-600">平均目標達成期間</div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+              {/* 統計表示 */}
+              <motion.div 
+                className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 2.4 }}
+              >
+                {[
+                  { value: "95%", label: "ユーザー満足度", delay: 2.5 },
+                  { value: "2.5x", label: "内定獲得率向上", delay: 2.6 },
+                  { value: "10k+", label: "分析データポイント", delay: 2.7 },
+                  { value: "30日", label: "平均目標達成期間", delay: 2.8 }
+                ].map((stat, index) => (
+                  <motion.div 
+                    key={index}
+                    className="text-center"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: stat.delay, duration: 0.6 }}
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <motion.div 
+                      className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent"
+                      whileInView={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      {stat.value}
+                    </motion.div>
+                    <div className="text-sm text-gray-600">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          </section>
+        </AnimatedBackground>
 
         {/* Core Features Section */}
-        <section className="py-32 px-4 sm:px-6 lg:px-8 bg-white">
-          <div className="container mx-auto max-w-7xl">
-            <motion.div 
-              className="text-center mb-20"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
+        <section className="py-32 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
+          {/* Background Elements */}
+          <div className="absolute inset-0">
+            <motion.div
+              className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-blue-50/50 to-transparent"
+              initial={{ opacity: 0, x: 100 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <h2 className="text-xl font-bold text-gray-500 mb-4">Core Features</h2>
-              <h3 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-8">
-                科学的アプローチで、
-                <br />
-                キャリアを最適化する
-              </h3>
-              <p className="text-xl text-gray-600 leading-relaxed max-w-4xl mx-auto">
-                ResearchHubは、あなたのキャリアデータを科学的に分析し、
-                最適な成長戦略を提案する次世代キャリアプラットフォームです。
-              </p>
-            </motion.div>
-
-            <div className="grid lg:grid-cols-2 gap-16 items-center mb-20">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
-              >
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <User className="w-6 h-6 text-gray-700" />
-                    </div>
-                    <h4 className="text-2xl font-bold text-gray-900">深層自己分析</h4>
-                  </div>
-                  <p className="text-lg text-gray-600 leading-relaxed mb-6">
-                    AIが行動パターンと心理的特性を分析し、あなたの本当の強みと価値観を発見。
-                    データに基づいた客観的な自己理解で、キャリアの方向性を明確にします。
+              transition={{ duration: 1.5 }}
+            />
+            <motion.div
+              className="absolute bottom-0 left-0 w-1/3 h-full bg-gradient-to-r from-purple-50/50 to-transparent"
+              initial={{ opacity: 0, x: -100 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.5, delay: 0.3 }}
+            />
+          </div>
+          
+          <div className="container mx-auto max-w-7xl relative z-10">
+            <SectionReveal>
+              <div className="text-center mb-20">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8 }}
+                >
+                  <h2 className="text-xl font-bold text-gray-500 mb-4">Core Features</h2>
+                  <h3 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-8">
+                    <motion.span
+                      className="inline-block"
+                      whileInView={{ 
+                        backgroundImage: [
+                          "linear-gradient(90deg, #1f2937 0%, #1f2937 100%)",
+                          "linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #1f2937 100%)",
+                          "linear-gradient(90deg, #1f2937 0%, #1f2937 100%)"
+                        ]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      style={{
+                        backgroundClip: "text",
+                        WebkitBackgroundClip: "text",
+                        color: "transparent"
+                      }}
+                    >
+                      科学的アプローチで、
+                    </motion.span>
+                    <br />
+                    キャリアを最適化する
+                  </h3>
+                  <p className="text-xl text-gray-600 leading-relaxed max-w-4xl mx-auto">
+                    ResearchHubは、あなたのキャリアデータを科学的に分析し、
+                    最適な成長戦略を提案する次世代キャリアプラットフォームです。
                   </p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-gray-900">85%</div>
-                      <div className="text-sm text-gray-600">精度向上</div>
+                </motion.div>
+              </div>
+            </SectionReveal>
+
+            {/* Feature Cards with Enhanced Animations */}
+            <div className="space-y-32">
+              {/* Feature 1 */}
+              <div className="grid lg:grid-cols-2 gap-16 items-center">
+                <SectionReveal delay={0.2}>
+                  <motion.div
+                    whileInView={{ x: 0, opacity: 1 }}
+                    initial={{ x: -50, opacity: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                  >
+                    <div className="mb-8">
+                      <motion.div 
+                        className="flex items-center gap-3 mb-4"
+                        whileHover={{ x: 10 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <motion.div 
+                          className="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center"
+                          whileHover={{ 
+                            scale: 1.1,
+                            rotate: 5,
+                            background: "linear-gradient(45deg, #dbeafe, #e9d5ff)"
+                          }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <User className="w-6 h-6 text-blue-600" />
+                        </motion.div>
+                        <h4 className="text-2xl font-bold text-gray-900">深層自己分析</h4>
+                      </motion.div>
+                      <p className="text-lg text-gray-600 leading-relaxed mb-6">
+                        AIが行動パターンと心理的特性を分析し、あなたの本当の強みと価値観を発見。
+                        データに基づいた客観的な自己理解で、キャリアの方向性を明確にします。
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <motion.div 
+                          className="p-4 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border border-gray-200"
+                          whileHover={{ scale: 1.05, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div className="text-2xl font-bold text-gray-900">85%</div>
+                          <div className="text-sm text-gray-600">精度向上</div>
+                        </motion.div>
+                        <motion.div 
+                          className="p-4 bg-gradient-to-br from-gray-50 to-purple-50 rounded-lg border border-gray-200"
+                          whileHover={{ scale: 1.05, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div className="text-2xl font-bold text-gray-900">12+</div>
+                          <div className="text-sm text-gray-600">分析指標</div>
+                        </motion.div>
+                      </div>
                     </div>
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-gray-900">12+</div>
-                      <div className="text-sm text-gray-600">分析指標</div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+                  </motion.div>
+                </SectionReveal>
+                
+                <SectionReveal delay={0.4}>
+                  <motion.div
+                    whileInView={{ x: 0, opacity: 1 }}
+                    initial={{ x: 50, opacity: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                    className="relative group"
+                  >
+                    <motion.div 
+                      className="w-full h-96 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl flex items-center justify-center relative overflow-hidden border border-gray-200"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {/* Floating UI Elements */}
+                      <motion.div 
+                        className="absolute top-4 left-4 bg-white rounded-lg p-3 border border-gray-200 shadow-lg"
+                        animate={{
+                          y: [0, -5, 0],
+                          rotate: [0, 1, 0]
+                        }}
+                        transition={{
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <div className="text-sm font-medium text-gray-600">自己分析スコア</div>
+                        <div className="text-2xl font-bold text-blue-600">87/100</div>
+                      </motion.div>
+                      <motion.div 
+                        className="absolute bottom-4 right-4 bg-white rounded-lg p-3 border border-gray-200 shadow-lg"
+                        animate={{
+                          y: [0, 5, 0],
+                          rotate: [0, -1, 0]
+                        }}
+                        transition={{
+                          duration: 4,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: 0.5
+                        }}
+                      >
+                        <div className="text-sm font-medium text-gray-600">発見された強み</div>
+                        <div className="text-lg font-bold text-purple-600">分析思考力</div>
+                      </motion.div>
+                      <motion.div
+                        animate={{
+                          scale: [1, 1.1, 1],
+                          rotate: [0, 180, 360]
+                        }}
+                        transition={{
+                          duration: 8,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <User className="w-24 h-24 text-gray-300" />
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+                </SectionReveal>
+              </div>
+
               
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="relative"
-              >
-                <div className="w-full h-96 bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden border border-gray-200">
-                  <div className="absolute top-4 left-4 bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                    <div className="text-sm font-medium text-gray-600">自己分析スコア</div>
-                    <div className="text-2xl font-bold text-gray-900">87/100</div>
-                  </div>
-                  <div className="absolute bottom-4 right-4 bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                    <div className="text-sm font-medium text-gray-600">発見された強み</div>
-                    <div className="text-lg font-bold text-gray-900">分析思考力</div>
-                  </div>
-                  <User className="w-24 h-24 text-gray-400" />
-                </div>
-              </motion.div>
-            </div>
+              {/* Feature 2 */}
+              <div className="grid lg:grid-cols-2 gap-16 items-center">
+                <SectionReveal delay={0.2}>
+                  <motion.div
+                    whileInView={{ x: 0, opacity: 1 }}
+                    initial={{ x: -50, opacity: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                    className="order-2 lg:order-1"
+                  >
+                    <motion.div 
+                      className="w-full h-96 bg-gradient-to-br from-gray-50 to-green-50 rounded-2xl flex items-center justify-center relative overflow-hidden border border-gray-200"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <motion.div 
+                        className="absolute top-4 left-4 bg-white rounded-lg p-3 border border-gray-200 shadow-lg"
+                        animate={{ y: [0, -3, 0] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <div className="text-sm font-medium text-gray-600">ES成功率</div>
+                        <div className="text-2xl font-bold text-green-600">73%</div>
+                      </motion.div>
+                      <motion.div 
+                        className="absolute bottom-4 right-4 bg-white rounded-lg p-3 border border-gray-200 shadow-lg"
+                        animate={{ y: [0, 3, 0] }}
+                        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+                      >
+                        <div className="text-sm font-medium text-gray-600">提出済み</div>
+                        <div className="text-lg font-bold text-gray-900">15件</div>
+                      </motion.div>
+                      <motion.div
+                        animate={{ scale: [1, 1.05, 1], rotate: [0, 2, 0] }}
+                        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <FileText className="w-24 h-24 text-gray-300" />
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+                </SectionReveal>
 
-            <div className="grid lg:grid-cols-2 gap-16 items-center mb-20">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
-                className="order-2 lg:order-1"
-              >
-                <div className="w-full h-96 bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden border border-gray-200">
-                  <div className="absolute top-4 left-4 bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                    <div className="text-sm font-medium text-gray-600">ES成功率</div>
-                    <div className="text-2xl font-bold text-gray-900">73%</div>
-                  </div>
-                  <div className="absolute bottom-4 right-4 bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                    <div className="text-sm font-medium text-gray-600">提出済み</div>
-                    <div className="text-lg font-bold text-gray-900">15件</div>
-                  </div>
-                  <FileText className="w-24 h-24 text-gray-400" />
-                </div>
-              </motion.div>
+                <SectionReveal delay={0.4}>
+                  <motion.div
+                    whileInView={{ x: 0, opacity: 1 }}
+                    initial={{ x: 50, opacity: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                    className="order-1 lg:order-2"
+                  >
+                    <div className="mb-8">
+                      <motion.div 
+                        className="flex items-center gap-3 mb-4"
+                        whileHover={{ x: 10 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <motion.div 
+                          className="w-12 h-12 bg-gradient-to-br from-green-100 to-blue-100 rounded-lg flex items-center justify-center"
+                          whileHover={{ scale: 1.1, rotate: -5 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <FileText className="w-6 h-6 text-green-600" />
+                        </motion.div>
+                        <h4 className="text-2xl font-bold text-gray-900">ES成功率最適化</h4>
+                      </motion.div>
+                      <p className="text-lg text-gray-600 leading-relaxed mb-6">
+                        企業分析と成功パターンから、あなたに最適なES戦略を提案。
+                        リアルタイムでフィードバックを提供し、内定獲得率を最大化します。
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <motion.div 
+                          className="p-4 bg-gradient-to-br from-green-50 to-blue-50 rounded-lg border border-gray-200"
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div className="text-2xl font-bold text-gray-900">2.5x</div>
+                          <div className="text-sm text-gray-600">成功率向上</div>
+                        </motion.div>
+                        <motion.div 
+                          className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-gray-200"
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div className="text-2xl font-bold text-gray-900">24h</div>
+                          <div className="text-sm text-gray-600">フィードバック</div>
+                        </motion.div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </SectionReveal>
+              </div>
 
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="order-1 lg:order-2"
-              >
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-gray-700" />
+              {/* Feature 3 */}
+              <div className="grid lg:grid-cols-2 gap-16 items-center">
+                <SectionReveal delay={0.2}>
+                  <motion.div
+                    whileInView={{ x: 0, opacity: 1 }}
+                    initial={{ x: -50, opacity: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                  >
+                    <div className="mb-8">
+                      <motion.div 
+                        className="flex items-center gap-3 mb-4"
+                        whileHover={{ x: 10 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <motion.div 
+                          className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center"
+                          whileHover={{ 
+                            scale: 1.1, 
+                            rotate: 10,
+                            background: "linear-gradient(45deg, #f3e8ff, #fce7f3)"
+                          }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <BarChart3 className="w-6 h-6 text-purple-600" />
+                        </motion.div>
+                        <h4 className="text-2xl font-bold text-gray-900">AI行動分析</h4>
+                      </motion.div>
+                      <p className="text-lg text-gray-600 leading-relaxed mb-6">
+                        あなたの活動パターンを分析し、最適な成長戦略を提案。
+                        個性と行動特性から、あなただけのキャリアロードマップを作成します。
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <motion.div 
+                          className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-gray-200"
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div className="text-2xl font-bold text-gray-900">97%</div>
+                          <div className="text-sm text-gray-600">予測精度</div>
+                        </motion.div>
+                        <motion.div 
+                          className="p-4 bg-gradient-to-br from-pink-50 to-yellow-50 rounded-lg border border-gray-200"
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div className="text-2xl font-bold text-gray-900">5種</div>
+                          <div className="text-sm text-gray-600">性格特性分析</div>
+                        </motion.div>
+                      </div>
                     </div>
-                    <h4 className="text-2xl font-bold text-gray-900">ES成功率最適化</h4>
-                  </div>
-                  <p className="text-lg text-gray-600 leading-relaxed mb-6">
-                    企業分析と成功パターンから、あなたに最適なES戦略を提案。
-                    リアルタイムでフィードバックを提供し、内定獲得率を最大化します。
-                  </p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-gray-900">2.5x</div>
-                      <div className="text-sm text-gray-600">成功率向上</div>
-                    </div>
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-gray-900">24h</div>
-                      <div className="text-sm text-gray-600">フィードバック</div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
-              >
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <BarChart3 className="w-6 h-6 text-gray-700" />
-                    </div>
-                    <h4 className="text-2xl font-bold text-gray-900">AI行動分析</h4>
-                  </div>
-                  <p className="text-lg text-gray-600 leading-relaxed mb-6">
-                    あなたの活動パターンを分析し、最適な成長戦略を提案。
-                    個性と行動特性から、あなただけのキャリアロードマップを作成します。
-                  </p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-gray-900">97%</div>
-                      <div className="text-sm text-gray-600">予測精度</div>
-                    </div>
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="text-2xl font-bold text-gray-900">5種</div>
-                      <div className="text-sm text-gray-600">性格特性分析</div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="relative"
-              >
-                <div className="w-full h-96 bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden border border-gray-200">
-                  <div className="absolute top-4 left-4 bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                    <div className="text-sm font-medium text-gray-600">キャリア健康度</div>
-                    <div className="text-2xl font-bold text-gray-900">92/100</div>
-                  </div>
-                  <div className="absolute bottom-4 right-4 bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                    <div className="text-sm font-medium text-gray-600">今月の活動</div>
-                    <div className="text-lg font-bold text-gray-900">18件</div>
-                  </div>
-                  <BarChart3 className="w-24 h-24 text-gray-400" />
-                </div>
-              </motion.div>
+                  </motion.div>
+                </SectionReveal>
+                
+                <SectionReveal delay={0.4}>
+                  <motion.div
+                    whileInView={{ x: 0, opacity: 1 }}
+                    initial={{ x: 50, opacity: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                    className="relative group"
+                  >
+                    <motion.div 
+                      className="w-full h-96 bg-gradient-to-br from-gray-50 to-purple-50 rounded-2xl flex items-center justify-center relative overflow-hidden border border-gray-200"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <motion.div 
+                        className="absolute top-4 left-4 bg-white rounded-lg p-3 border border-gray-200 shadow-lg"
+                        animate={{ 
+                          y: [0, -4, 0],
+                          rotate: [0, 0.5, 0]
+                        }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <div className="text-sm font-medium text-gray-600">キャリア健康度</div>
+                        <div className="text-2xl font-bold text-purple-600">92/100</div>
+                      </motion.div>
+                      <motion.div 
+                        className="absolute bottom-4 right-4 bg-white rounded-lg p-3 border border-gray-200 shadow-lg"
+                        animate={{ 
+                          y: [0, 4, 0],
+                          rotate: [0, -0.5, 0]
+                        }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                      >
+                        <div className="text-sm font-medium text-gray-600">今月の活動</div>
+                        <div className="text-lg font-bold text-gray-900">18件</div>
+                      </motion.div>
+                      <motion.div
+                        animate={{
+                          scale: [1, 1.1, 1],
+                          rotate: [0, 360]
+                        }}
+                        transition={{
+                          scale: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+                          rotate: { duration: 20, repeat: Infinity, ease: "linear" }
+                        }}
+                      >
+                        <BarChart3 className="w-24 h-24 text-gray-300" />
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+                </SectionReveal>
+              </div>
             </div>
           </div>
         </section>
@@ -880,21 +1256,51 @@ export default function HomePage() {
         </section>
 
         {/* Success Stories Section */}
-        <section id="success-stories" className="py-32 px-4 sm:px-6 lg:px-8 bg-white">
-          <div className="container mx-auto max-w-7xl">
-            <motion.div 
-              className="text-center mb-20"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <h2 className="text-xl font-bold text-gray-600 mb-4">Success Stories</h2>
-              <p className="text-2xl text-gray-900 max-w-4xl mx-auto leading-relaxed">
-                ResearchHubを活用して理想のキャリアを実現した、
-                ユーザーの成功ストーリーをご紹介します。
-              </p>
-            </motion.div>
+        <section id="success-stories" className="py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0">
+            <motion.div
+              className="absolute top-0 left-0 w-full h-full opacity-[0.03]"
+              animate={{
+                backgroundPosition: ["0% 0%", "100% 100%"],
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                backgroundImage: `repeating-linear-gradient(45deg, #000 0px, #000 1px, transparent 1px, transparent 30px)`,
+              }}
+            />
+          </div>
+          
+          <div className="container mx-auto max-w-7xl relative z-10">
+            <SectionReveal>
+              <div className="text-center mb-20">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8 }}
+                >
+                  <h2 className="text-xl font-bold text-gray-600 mb-4">Success Stories</h2>
+                  <p className="text-2xl text-gray-900 max-w-4xl mx-auto leading-relaxed">
+                    <motion.span
+                      className="inline-block"
+                      whileInView={{ 
+                        color: ["#1f2937", "#3b82f6", "#8b5cf6", "#1f2937"]
+                      }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                    >
+                      ResearchHubを活用して理想のキャリアを実現した、
+                    </motion.span>
+                    <br />
+                    ユーザーの成功ストーリーをご紹介します。
+                  </p>
+                </motion.div>
+              </div>
+            </SectionReveal>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
               {[
@@ -906,6 +1312,8 @@ export default function HomePage() {
                   user: "Aさん（工学部4年）",
                   period: "3ヶ月",
                   delay: 0,
+                  gradient: "from-blue-400 to-purple-400",
+                  bgGradient: "from-blue-50 to-purple-50"
                 },
                 {
                   title: "自己分析スコア95点で、理想のキャリアパスを発見",
@@ -915,6 +1323,8 @@ export default function HomePage() {
                   user: "Bさん（既卒2年目）",
                   period: "2ヶ月",
                   delay: 0.2,
+                  gradient: "from-green-400 to-blue-400",
+                  bgGradient: "from-green-50 to-blue-50"
                 },
                 {
                   title: "研究成果を活かした戦略的キャリア設計",
@@ -924,6 +1334,8 @@ export default function HomePage() {
                   user: "Cさん（修士課程）",
                   period: "4ヶ月",
                   delay: 0.4,
+                  gradient: "from-purple-400 to-pink-400",
+                  bgGradient: "from-purple-50 to-pink-50"
                 },
                 {
                   title: "継続率100%で習慣化に成功",
@@ -933,6 +1345,8 @@ export default function HomePage() {
                   user: "Dさん（学部3年）",
                   period: "6ヶ月",
                   delay: 0.6,
+                  gradient: "from-yellow-400 to-orange-400",
+                  bgGradient: "from-yellow-50 to-orange-50"
                 },
                 {
                   title: "個性分析で最適な職場環境を発見",
@@ -942,6 +1356,8 @@ export default function HomePage() {
                   user: "Eさん（博士課程）",
                   period: "5ヶ月",
                   delay: 0.8,
+                  gradient: "from-cyan-400 to-blue-400",
+                  bgGradient: "from-cyan-50 to-blue-50"
                 },
                 {
                   title: "ベンチマーク分析で業界トップクラスのパフォーマンス",
@@ -951,52 +1367,83 @@ export default function HomePage() {
                   user: "Fさん（院卒1年目）",
                   period: "7ヶ月",
                   delay: 1.0,
+                  gradient: "from-indigo-400 to-purple-400",
+                  bgGradient: "from-indigo-50 to-purple-50"
                 }
               ].map((story, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, y: 50 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
                   viewport={{ once: true }}
                   transition={{ 
                     duration: 0.8, 
                     delay: story.delay,
+                    type: "spring",
+                    stiffness: 100
                   }}
                   whileHover={{ 
-                    y: -5,
-                    scale: 1.02,
+                    y: -10,
+                    scale: 1.03,
+                    transition: { duration: 0.3 }
                   }}
                   className="group cursor-pointer"
                 >
-                  <Card className="border-0 shadow-lg h-full bg-white hover:shadow-xl transition-all duration-300 border border-gray-200">
-                    <CardHeader>
+                  <Card className={`border-0 shadow-lg h-full bg-gradient-to-br ${story.bgGradient} hover:shadow-2xl transition-all duration-500 border border-gray-200 relative overflow-hidden`}>
+                    {/* Gradient Overlay */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${story.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
+                    
+                    <CardHeader className="relative z-10">
                       <div className="flex flex-wrap gap-2 mb-4">
-                        <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700 border border-gray-300">
-                          {story.category}
-                        </Badge>
+                        <motion.div
+                          whileHover={{ scale: 1.1 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Badge 
+                            variant="secondary" 
+                            className={`text-xs bg-gradient-to-r ${story.gradient} text-white border-0`}
+                          >
+                            {story.category}
+                          </Badge>
+                        </motion.div>
                         <Badge variant="outline" className="text-xs border-gray-300 text-gray-600">
                           期間: {story.period}
                         </Badge>
                       </div>
-                      <CardTitle className="text-lg font-bold text-gray-900 leading-tight mb-3 group-hover:text-gray-700 transition-colors">
-                        {story.title}
-                      </CardTitle>
+                      
+                      <motion.div
+                        whileHover={{ x: 5 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <CardTitle className="text-lg font-bold text-gray-900 leading-tight mb-3 group-hover:text-gray-700 transition-colors">
+                          {story.title}
+                        </CardTitle>
+                      </motion.div>
+                      
                       <CardDescription className="text-gray-600 text-sm leading-relaxed mb-4">
                         {story.subtitle}
                       </CardDescription>
                       
                       {/* Metrics */}
-                      <div className="p-3 bg-gray-50 rounded-lg mb-3 border border-gray-200">
+                      <motion.div 
+                        className="p-3 bg-white/80 backdrop-blur-sm rounded-lg mb-3 border border-gray-200 group-hover:bg-white/90 transition-all duration-300"
+                        whileHover={{ scale: 1.02 }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <div className="text-sm font-semibold text-gray-700">{story.metrics}</div>
-                      </div>
+                      </motion.div>
                       
                       {/* User Info */}
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>{story.user}</span>
-                        <div className="flex items-center gap-1">
+                        <motion.div 
+                          className="flex items-center gap-1"
+                          whileHover={{ scale: 1.1 }}
+                          transition={{ duration: 0.2 }}
+                        >
                           <CheckCircle className="w-3 h-3 text-green-500" />
                           <span>検証済み</span>
-                        </div>
+                        </motion.div>
                       </div>
                     </CardHeader>
                   </Card>
@@ -1005,35 +1452,70 @@ export default function HomePage() {
             </div>
 
             {/* CTA Section */}
-            <motion.div 
-              className="text-center p-8 bg-gray-50 rounded-2xl border border-gray-200"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                あなたも成功ストーリーの主人公になりませんか？
-              </h3>
-              <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                科学的アプローチとAI分析で、あなたの理想のキャリアを実現しましょう。
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  className="bg-gray-900 text-white hover:bg-gray-800 px-8 py-3 rounded-lg font-medium transition-all duration-300"
-                  asChild
-                >
-                  <Link href="/dashboard">今すぐ無料で始める</Link>
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 px-8 py-3 rounded-lg font-medium transition-all duration-300"
-                  asChild
-                >
-                  <Link href="/success-stories">全ての事例を見る</Link>
-                </Button>
-              </div>
-            </motion.div>
+            <SectionReveal delay={0.4}>
+              <motion.div 
+                className="text-center p-8 bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-200 relative overflow-hidden"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-5">
+                  <motion.div
+                    className="w-full h-full"
+                    animate={{
+                      backgroundPosition: ["0% 0%", "100% 100%"],
+                    }}
+                    transition={{
+                      duration: 15,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    style={{
+                      backgroundImage: `conic-gradient(from 0deg, #3b82f6, #8b5cf6, #06b6d4, #3b82f6)`,
+                      backgroundSize: "400% 400%",
+                    }}
+                  />
+                </div>
+                
+                <div className="relative z-10">
+                  <motion.h3 
+                    className="text-2xl font-bold text-gray-900 mb-4"
+                    whileInView={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    あなたも成功ストーリーの主人公になりませんか？
+                  </motion.h3>
+                  <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                    科学的アプローチとAI分析で、あなたの理想のキャリアを実現しましょう。
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <motion.div
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button 
+                        className="bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 px-8 py-3 rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
+                        asChild
+                      >
+                        <Link href="/dashboard">今すぐ無料で始める</Link>
+                      </Button>
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button 
+                        variant="outline"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 px-8 py-3 rounded-lg font-medium transition-all duration-300"
+                        asChild
+                      >
+                        <Link href="/success-stories">全ての事例を見る</Link>
+                      </Button>
+                    </motion.div>
+                  </div>
+                </div>
+              </motion.div>
+            </SectionReveal>
           </div>
         </section>
 
@@ -1224,23 +1706,85 @@ export default function HomePage() {
         </section>
 
         {/* Career Section */}
-        <section id="career" className="py-32 px-4 sm:px-6 lg:px-8 bg-gray-50 relative overflow-hidden">
-          {/* Animated Background */}
+        <section id="career" className="py-32 px-4 sm:px-6 lg:px-8 bg-gray-900 relative overflow-hidden">
+          {/* Advanced Animated Background */}
           <div className="absolute inset-0">
-            <div className="absolute top-0 left-0 w-full h-full">
+            {/* Gradient Orbs */}
+            <motion.div
+              className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl"
+              style={{
+                background: "radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)",
+              }}
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.6, 0.3],
+                x: [0, 50, 0],
+                y: [0, -30, 0],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+            <motion.div
+              className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl"
+              style={{
+                background: "radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)",
+              }}
+              animate={{
+                scale: [1.2, 1, 1.2],
+                opacity: [0.2, 0.5, 0.2],
+                x: [0, -40, 0],
+                y: [0, 20, 0],
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+            
+            {/* Moving Text Background */}
+            <div className="absolute top-0 left-0 w-full h-full flex items-center">
               <motion.div
-                className="text-6xl md:text-8xl lg:text-9xl font-black text-gray-100 whitespace-nowrap absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                className="text-6xl md:text-8xl lg:text-9xl font-black text-white/5 whitespace-nowrap"
                 animate={{
                   x: ["-100%", "100%"],
                 }}
                 transition={{
-                  duration: 15,
+                  duration: 20,
                   repeat: Infinity,
                   ease: "linear",
                 }}
               >
-                JOIN OUR TEAM! JOIN OUR TEAM! JOIN OUR TEAM!
+                JOIN OUR TEAM! CREATE THE FUTURE! INNOVATE! BUILD! GROW! 
               </motion.div>
+            </div>
+            
+            {/* Floating Particles */}
+            <div className="absolute inset-0">
+              {isClient && careerParticles.map((particle) => (
+                <motion.div
+                  key={particle.id}
+                  className="absolute w-1 h-1 bg-white rounded-full"
+                  style={{
+                    left: `${particle.x}%`,
+                    top: `${particle.y}%`,
+                  }}
+                  animate={{
+                    y: [0, -20, 0],
+                    opacity: [0, 1, 0],
+                    scale: [0, 1, 0],
+                  }}
+                  transition={{
+                    duration: particle.duration,
+                    delay: particle.delay,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
             </div>
           </div>
           
@@ -1251,35 +1795,326 @@ export default function HomePage() {
               viewport={{ once: true }}
               transition={{ duration: 1 }}
             >
-              <h2 className="text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 mb-8">
-                一緒に未来の
+              <motion.h2 
+                className="text-5xl md:text-6xl lg:text-7xl font-black text-white mb-8"
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.2, delay: 0.2 }}
+              >
+                <motion.span
+                  className="inline-block"
+                  animate={{
+                    background: [
+                      "linear-gradient(45deg, #fff, #fff)",
+                      "linear-gradient(45deg, #3b82f6, #8b5cf6)",
+                      "linear-gradient(45deg, #06b6d4, #3b82f6)",
+                      "linear-gradient(45deg, #fff, #fff)",
+                    ],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  style={{
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    color: "transparent",
+                  }}
+                >
+                  一緒に未来の
+                </motion.span>
                 <br />
-                キャリアを
+                <motion.span
+                  className="inline-block text-blue-400"
+                  whileInView={{ 
+                    rotate: [0, 2, -2, 0],
+                    scale: [1, 1.05, 1]
+                  }}
+                  transition={{ 
+                    duration: 2, 
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  キャリアを
+                </motion.span>
                 <br />
-                創りませんか？
-              </h2>
+                <motion.span
+                  className="inline-block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent"
+                  whileInView={{ scale: [1, 1.1, 1] }}
+                  transition={{ 
+                    duration: 2.5, 
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 0.5
+                  }}
+                >
+                  創りませんか？
+                </motion.span>
+              </motion.h2>
               
-              <p className="text-2xl md:text-3xl text-gray-600 mb-12 leading-relaxed">
-                ResearchHubで、科学的アプローチによる
+              <motion.p 
+                className="text-2xl md:text-3xl text-gray-300 mb-12 leading-relaxed"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, delay: 0.6 }}
+              >
+                <motion.span
+                  whileInView={{ 
+                    color: ["#d1d5db", "#60a5fa", "#d1d5db"]
+                  }}
+                  transition={{ 
+                    duration: 3, 
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  ResearchHubで、科学的アプローチによる
+                </motion.span>
                 <br />
                 キャリア支援の新しいスタンダードを築きましょう。
-              </p>
+              </motion.p>
               
               <motion.div
-                whileHover={{ scale: 1.05 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.8 }}
+                whileHover={{ 
+                  scale: 1.05,
+                  boxShadow: "0 20px 40px rgba(59, 130, 246, 0.3)"
+                }}
                 whileTap={{ scale: 0.95 }}
               >
                 <Button 
                   size="lg" 
-                  className="bg-gray-900 text-white hover:bg-gray-800 px-12 py-4 text-xl font-bold rounded-lg"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 px-12 py-4 text-xl font-bold rounded-lg shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 relative overflow-hidden group"
                   asChild
                 >
-                  <Link href="/career">
-                    採用情報を見る
+                  <Link href="/careers" className="relative z-10">
+                    <motion.span
+                      whileHover={{ x: -5 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      キャリアを始める
+                    </motion.span>
+                    <motion.div
+                      className="ml-2"
+                      whileHover={{ x: 5 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ArrowRight className="w-6 h-6 inline-block" />
+                    </motion.div>
+                    {/* Animated Background */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      initial={{ x: "-100%" }}
+                      whileHover={{ x: "0%" }}
+                      transition={{ duration: 0.3 }}
+                    />
                   </Link>
                 </Button>
               </motion.div>
+
+              {/* Floating Action Icons */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                {[Rocket, Star, Sparkles, Zap].map((Icon, index) => (
+                  <motion.div
+                    key={index}
+                    className="absolute text-white/20"
+                    style={{
+                      left: `${Math.cos((index * Math.PI) / 2) * 200}px`,
+                      top: `${Math.sin((index * Math.PI) / 2) * 200}px`,
+                    }}
+                    animate={{
+                      rotate: [0, 360],
+                      scale: [1, 1.2, 1],
+                      opacity: [0.2, 0.5, 0.2],
+                    }}
+                    transition={{
+                      duration: 5 + index,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: index * 0.5,
+                    }}
+                  >
+                    <Icon className="w-8 h-8" />
+                  </motion.div>
+                ))}
+              </div>
             </motion.div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section className="py-32 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="container mx-auto max-w-6xl">
+            <motion.div 
+              className="text-center mb-20"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="text-xl font-bold text-gray-600 mb-4">Pricing</h2>
+              <h3 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-8">
+                あなたに最適なプランを選択
+              </h3>
+              <p className="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                無料プランから始めて、必要に応じてアップグレード。
+                すべてのプランで科学的キャリア分析をご利用いただけます。
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {/* Free Plan */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0 }}
+                whileHover={{ y: -5 }}
+              >
+                <Card className="border-2 border-gray-200 shadow-lg h-full bg-white hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="text-center pb-8">
+                    <Badge variant="outline" className="mb-4 w-fit mx-auto">スタータープラン</Badge>
+                    <CardTitle className="text-2xl font-bold text-gray-900 mb-4">
+                      無料
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      基本的なキャリア分析機能
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">基本自己分析（月3件）</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">ES管理（月5件）</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">基本統計ダッシュボード</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">コミュニティアクセス</span>
+                      </div>
+                    </div>
+                    <Button 
+                      className="w-full mt-6 bg-gray-100 text-gray-800 hover:bg-gray-200"
+                      asChild
+                    >
+                      <Link href="/dashboard">無料で始める</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Pro Plan */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                whileHover={{ y: -5 }}
+              >
+                <Card className="border-2 border-blue-500 shadow-xl h-full bg-white hover:shadow-2xl transition-all duration-300 relative">
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-blue-500 text-white px-4 py-1">人気プラン</Badge>
+                  </div>
+                  <CardHeader className="text-center pb-8">
+                    <Badge variant="secondary" className="mb-4 w-fit mx-auto bg-blue-100 text-blue-800">プロプラン</Badge>
+                    <CardTitle className="text-2xl font-bold text-gray-900 mb-4">
+                      ¥2,980
+                      <span className="text-lg font-normal text-gray-600">/月</span>
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      AI分析とプレミアム機能
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">無制限自己分析</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">無制限ES管理</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">AI分析レポート</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">優先サポート</span>
+                      </div>
+                    </div>
+                    <Button 
+                      className="w-full mt-6 bg-blue-500 text-white hover:bg-blue-600"
+                      asChild
+                    >
+                      <Link href="/pricing">プロプランを始める</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Enterprise Plan */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                whileHover={{ y: -5 }}
+              >
+                <Card className="border-2 border-purple-200 shadow-lg h-full bg-white hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="text-center pb-8">
+                    <Badge variant="outline" className="mb-4 w-fit mx-auto border-purple-500 text-purple-700">エンタープライズ</Badge>
+                    <CardTitle className="text-2xl font-bold text-gray-900 mb-4">
+                      お問い合わせ
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      大学・企業向けカスタムソリューション
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">カスタム機能開発</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">専用サポートチーム</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">データ統合</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">セキュリティ強化</span>
+                      </div>
+                    </div>
+                    <Button 
+                      className="w-full mt-6 bg-purple-500 text-white hover:bg-purple-600"
+                      asChild
+                    >
+                      <Link href="/contact">お問い合わせ</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
           </div>
         </section>
 
