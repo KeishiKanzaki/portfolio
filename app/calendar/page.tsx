@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { CustomCalendar } from "@/components/ui/custom-calendar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,6 +25,8 @@ import { CalendarDays, Clock, Plus, Edit, Trash2, Bell } from "lucide-react"
 import { format, isToday, isTomorrow, isThisWeek, isPast, differenceInDays } from "date-fns"
 import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
+import AnimatedBackground from "@/components/animations/AnimatedBackground"
+import PageContainer from "@/components/layout/PageContainer"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
 import { useLoginModal } from "@/hooks/useLoginModal"
@@ -421,20 +424,33 @@ export default function TodoCalendarApp() {
   }
 
   return (
-    <>
-      <Header user={user} onMenuClick={toggleSidebar} />
-      <Sidebar user={user} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
-      <div className={`min-h-screen bg-gray-50 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
-        <div className="p-4 pt-20">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold mb-2">カレンダー & タスク管理</h1>
-              <p className="text-gray-600">カレンダー統合とリマインダー機能でタスクを管理しましょう</p>
-            </div>
-
-            {/* Reminders Section */}
-            {(getOverdueTasks().length > 0 || getTodayTasks().filter((t) => !t.completed).length > 0) && (
+    <AnimatedBackground>
+      <div className="flex">
+        <Sidebar 
+          user={user} 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+        />
+        
+        <div className="flex-1">
+          <Header 
+            user={user} 
+            onMenuClick={toggleSidebar}
+            currentPage="calendar"
+          />
+          
+          <PageContainer
+            title="カレンダー & タスク管理"
+            description="カレンダー統合とリマインダー機能でタスクを管理しましょう"
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <div className="max-w-7xl mx-auto">
+                {/* Reminders Section */}
+                {(getOverdueTasks().length > 0 || getTodayTasks().filter((t) => !t.completed).length > 0) && (
               <Card className="mb-6 border-orange-200 bg-orange-50">
                 <CardHeader>
                   <CardTitle className="flex items-center text-orange-800">
@@ -668,9 +684,11 @@ export default function TodoCalendarApp() {
                 </Tabs>
               </div>
             </div>
-          </div>
+              </div>
+            </motion.div>
+          </PageContainer>
         </div>
       </div>
-    </>
+    </AnimatedBackground>
   )
 }

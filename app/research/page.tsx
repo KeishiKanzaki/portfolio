@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,6 +23,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
+import AnimatedBackground from "@/components/animations/AnimatedBackground"
+import PageContainer from "@/components/layout/PageContainer"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
 import { researchService, type Research as ResearchType } from "@/lib/supabase"
@@ -342,23 +345,32 @@ export default function ResearchManager() {
   }
 
   return (
-    <div className="relative flex h-screen bg-gray-100/40">
-      <Sidebar 
-        user={user} 
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${
-        sidebarOpen ? 'lg:ml-64' : 'ml-0'
-      }`}>
-        <Header 
+    <AnimatedBackground>
+      <div className="flex">
+        <Sidebar 
           user={user} 
-          notificationCount={0}
-          onMenuClick={toggleSidebar}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
-        <main className="flex-1 overflow-auto">
-          <div className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-8 max-w-6xl">
+        
+        <div className="flex-1">
+          <Header
+            user={user}
+            notificationCount={0}
+            onMenuClick={toggleSidebar}
+            currentPage="research"
+          />
+          
+          <PageContainer
+            title="研究管理"
+            description="研究活動の記録と管理を行い、学術的な成果を整理しましょう"
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">研究管理システム</h1>
@@ -646,10 +658,11 @@ export default function ResearchManager() {
             ))}
           </div>
         )}
-            </div>
-          </div>
-        </main>
+              </div>
+            </motion.div>
+          </PageContainer>
+        </div>
       </div>
-    </div>
+    </AnimatedBackground>
   )
 }

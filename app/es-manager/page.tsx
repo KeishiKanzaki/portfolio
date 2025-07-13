@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +21,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Search, Edit, Trash2, FileText, Calendar, Building, Save, Building2 } from "lucide-react"
 import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
+import AnimatedBackground from "@/components/animations/AnimatedBackground"
+import PageContainer from "@/components/layout/PageContainer"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
 import { useLoginModal } from "@/hooks/useLoginModal"
@@ -250,30 +253,33 @@ export default function ESManagerPage() {
   }
 
   return (
-    <div className="relative flex h-screen bg-gray-100/40">
-      <Sidebar 
-        user={user} 
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${
-        sidebarOpen ? 'lg:ml-64' : 'ml-0'
-      }`}>
-        <Header 
+    <AnimatedBackground>
+      <div className="flex">
+        <Sidebar 
           user={user} 
-          notificationCount={2}
-          onMenuClick={toggleSidebar}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
         
-        <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-7xl mx-auto">
-            {/* ページヘッダー */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">ES管理システム</h1>
-              <p className="text-gray-600">エントリーシートの作成・管理・追跡を効率的に行えます</p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="flex-1">
+          <Header
+            user={user}
+            notificationCount={2}
+            onMenuClick={toggleSidebar}
+            currentPage="es-manager"
+          />
+          
+          <PageContainer
+            title="ES管理"
+            description="エントリーシートを効率的に管理し、応募状況を把握しましょう"
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* 企業一覧 */}
               <div className="lg:col-span-1">
                 <Card>
@@ -651,9 +657,11 @@ export default function ESManagerPage() {
                 </Card>
               </div>
             </div>
-          </div>
-        </main>
+              </div>
+            </motion.div>
+          </PageContainer>
+        </div>
       </div>
-    </div>
+    </AnimatedBackground>
   )
 }

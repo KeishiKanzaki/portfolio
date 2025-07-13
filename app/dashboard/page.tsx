@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -9,6 +10,8 @@ import { CheckCircle, Circle, BarChart3, Target, Clock, TrendingUp, FileText, Us
 import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
 import TodoSummary from "@/components/dashboard/TodoSummary"
+import AnimatedBackground from "@/components/animations/AnimatedBackground"
+import PageContainer from "@/components/layout/PageContainer"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
 import { selfAnalysisService, researchService, taskService } from "@/lib/supabase"
@@ -724,30 +727,39 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="relative flex h-screen bg-gray-100/40">
-      <Sidebar 
-        user={user} 
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${
-        sidebarOpen ? 'lg:ml-64' : 'ml-0'
-      }`}>
-        <Header 
+    <AnimatedBackground>
+      <div className="flex">
+        <Sidebar 
           user={user} 
-          notificationCount={3}
-          onMenuClick={toggleSidebar}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
-        <main className="flex-1 p-6 overflow-auto">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* ダッシュボードヘッダー */}
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">ダッシュボード</h1>
-              <p className="text-gray-600 mt-1">キャリア成長の進捗を確認しましょう</p>
-            </div>
-
-            {/* 統計カード */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        
+        <div className="flex-1">
+          <Header
+            user={user}
+            notificationCount={3}
+            onMenuClick={toggleSidebar}
+            currentPage="dashboard"
+          />
+          
+          <PageContainer
+            title="ダッシュボード"
+            description="キャリア成長の進捗を確認しましょう"
+          >
+            <motion.div 
+              className="space-y-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              {/* 統計カード */}
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">自己分析</CardTitle>
@@ -804,10 +816,15 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground">合格率</p>
                 </CardContent>
               </Card>
-            </div>
+              </motion.div>
 
-            {/* キャリア進捗トラッカー & クイックアクション */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* キャリア進捗トラッカー & クイックアクション */}
+              <motion.div 
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
               {/* キャリア進捗トラッカー */}
               <div className="lg:col-span-2">
                 <Card>
@@ -908,10 +925,15 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               </div>
-            </div>
+              </motion.div>
 
-            {/* データ分析セクション */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* データ分析セクション */}
+              <motion.div 
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
               {/* 週次トレンド分析 */}
               <Card>
                 <CardHeader>
@@ -1019,9 +1041,14 @@ export default function DashboardPage() {
                   )}
                 </CardContent>
               </Card>
-            </div>
+              </motion.div>
 
-            {/* 月次活動推移 */}
+              {/* 月次活動推移 */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1174,9 +1201,15 @@ export default function DashboardPage() {
                 )}
               </CardContent>
             </Card>
+            </motion.div>
 
             {/* 高度な分析セクション */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <motion.div 
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+            >
               {/* キャリアタイムライン */}
               <Card>
                 <CardHeader>
@@ -1330,9 +1363,14 @@ export default function DashboardPage() {
                   )}
                 </CardContent>
               </Card>
-            </div>
+              </motion.div>
 
-            {/* インサイトとパターン分析 */}
+              {/* インサイトとパターン分析 */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+              >
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -2146,9 +2184,11 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </main>
+            </motion.div>
+            </motion.div>
+          </PageContainer>
+        </div>
       </div>
-    </div>
+    </AnimatedBackground>
   )
 }

@@ -57,7 +57,12 @@ const FloatingParticle = ({ particle }: { particle: any }) => {
   );
 };
 
-const AnimatedBackground = ({ children }: { children: React.ReactNode }) => {
+type AnimationBackgroundProps = {
+  children: React.ReactNode; //PropsのchildrenはReactのノード型
+};
+
+//スクロールに応じて背景をアニメーション
+const AnimatedBackground = ({ children }: AnimationBackgroundProps) => {
   const { scrollYProgress } = useScroll();
   const y1 = useTransform(scrollYProgress, [0, 1], [0, -200]);
   const y2 = useTransform(scrollYProgress, [0, 1], [0, -400]);
@@ -81,13 +86,20 @@ const AnimatedBackground = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const SectionReveal = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+//
+type SectionRevealProps = {
+  children: React.ReactNode;
+  delay?: number;
+};
+
+//コンテンツが画面内に入ったときに、フワッと表示されるアニメーション
+const SectionReveal = ({ children, delay = 0 }: SectionRevealProps) => {
+  const ref = useRef(null); //motion.div 要素自身を参照するための入れ物 (ref) を作成
+  const isInView = useInView(ref, { once: true, margin: "-100px" }); //refが紐づけられた要素が画面内に入ったかどうかを判定
 
   return (
     <motion.div
-      ref={ref}
+      ref={ref} //DOM参照を渡す
       initial={{ opacity: 0, y: 50 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
       transition={{ duration: 0.8, delay, ease: "easeOut" }}
@@ -97,10 +109,11 @@ const SectionReveal = ({ children, delay = 0 }: { children: React.ReactNode; del
   );
 };
 
+//メインページコンポーネント
 export default function HomePage() {
   const { onOpen: onOpenLogin } = useLoginModal(); //ログインモーダルの開閉制御
   const { scrollYProgress } = useScroll(); //スクロール進行度を0-1の値で取得（ページの一番上が0、一番下が1）。
-  const [isClient, setIsClient] = useState(false); //クライアントサイドレンダリング
+  const [isClient, setIsClient] = useState(false); //コンポーネントがクライアント（ブラウザ）で描画されたかどうかを判定
 
   // アニメーション用パーティクル配列の状態管理
   const [particles, setParticles] = useState<Array<{
@@ -141,19 +154,38 @@ export default function HomePage() {
   const yTransform = useTransform(scrollYProgress, [0, 1], [0, -100]); //スクロールで要素を上に移動（パララックス効果）
   const scaleTransform = useTransform(scrollYProgress, [0, 1], [1, 0.8]); //スクロールで要素を縮小
 
+  // パーティクルの型定義
+  type Particle = {
+    id: number;
+    x: number;
+    y: number;
+    duration: number;
+    delay: number;
+  };
+  
+  //初回マウント時にデータを生成
   useEffect(() => {
     setIsClient(true); // クライアントサイドでのみ実行
-    const particleData = Array.from({ length: 20 }, (_, i) => ({
+    const particleData: Particle[] = Array.from({ length: 20 }, (_, i) => ({ // 20個のパーティクルを生成
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
       duration: Math.random() * 10 + 5,
       delay: Math.random() * 5,
     }));
-    setParticles(particleData);
+    setParticles(particleData); //生成したパーティクルのデータを particles 状態にセット
+
+    type FloatingElement = {
+      id: number;
+      x: number;
+      y: number;
+      duration: number;
+      delay: number;
+      size: number;
+    };
 
     // 浮遊要素データを生成
-    const floatingData = Array.from({ length: 15 }, (_, i) => ({
+    const floatingData: FloatingElement[] = Array.from({ length: 15 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -164,7 +196,7 @@ export default function HomePage() {
     setFloatingElements(floatingData);
 
     // コミュニティセクション用パーティクル
-    const communityData = Array.from({ length: 12 }, (_, i) => ({
+    const communityData: Particle[] = Array.from({ length: 12 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -174,7 +206,7 @@ export default function HomePage() {
     setCommunityParticles(communityData);
 
     // キャリアセクション用パーティクル
-    const careerData = Array.from({ length: 12 }, (_, i) => ({
+    const careerData: Particle[] = Array.from({ length: 12 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -194,7 +226,7 @@ export default function HomePage() {
       transition: {
         duration: 12,
         repeat: Infinity,
-        ease: "easeInOut" as const
+        ease: "easeInOut" as const // TypeScriptでの型アサーションによる定数型指定
       }
     }
   };
@@ -228,12 +260,12 @@ export default function HomePage() {
                 className="text-xl sm:text-2xl font-bold text-gray-900"
                 whileHover={{ scale: 1.02 }}
               >
-                ResearchHub
+                AnalyzMe
               </motion.span>
             </motion.div>
             
             <nav className="hidden md:flex items-center space-x-8">
-              {['機能', 'ストラテジー', 'インタビュー', 'キャリア'].map((item, index) => (
+              {['ES', '自己分析', '就活スケジュール管理', 'ポートフォリオ作成'].map((item, index) => (
                 <motion.div
                   key={item}
                   initial={{ opacity: 0, y: -20 }}
@@ -282,6 +314,7 @@ export default function HomePage() {
                 >
                   ログイン
                 </Button>
+                
               </motion.div>
               
               {/* Mobile menu button */}

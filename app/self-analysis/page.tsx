@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Save, Lightbulb, Edit, Trash2, Plus } from "lucide-react"
 import Header from "@/components/layout/Header"
 import Sidebar from "@/components/layout/Sidebar"
+import AnimatedBackground from "@/components/animations/AnimatedBackground"
+import PageContainer from "@/components/layout/PageContainer"
 import { useAuth } from "@/components/providers/AuthProvider"
 import { useSidebar } from "@/components/providers/SidebarProvider"
 import { useLoginModal } from "@/hooks/useLoginModal"
@@ -312,23 +315,33 @@ export default function SelfAnalysisPage() {
   }
 
   return (
-    <div className="relative flex h-screen bg-gray-100/40">
-      <Sidebar 
-        user={user} 
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${
-        sidebarOpen ? 'lg:ml-64' : 'ml-0'
-      }`}>
-        <Header 
+    <AnimatedBackground>
+      <div className="flex">
+        <Sidebar 
           user={user} 
-          notificationCount={2}
-          onMenuClick={toggleSidebar}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
-        <main className="flex-1 p-6 overflow-auto">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <div className="flex-1">
+          <Header
+            user={user}
+            notificationCount={2}
+            onMenuClick={toggleSidebar}
+            currentPage="self-analysis"
+          />
+          
+          <PageContainer
+            title="自己分析"
+            description="自分の強みや価値観を深く理解し、キャリアの方向性を明確にしましょう"
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* サイドバー - 保存された分析一覧 */}
               <div className="lg:col-span-1">
                 <Card>
@@ -442,9 +455,11 @@ export default function SelfAnalysisPage() {
                 )}
               </div>
             </div>
-          </div>
-        </main>
+              </div>
+            </motion.div>
+          </PageContainer>
+        </div>
       </div>
-    </div>
+    </AnimatedBackground>
   )
 }
